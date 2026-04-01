@@ -5,7 +5,7 @@ export const getCookie = (name: string): string | null => {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; ${name}=`);
   if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
+    return parts.pop()?.split(";").shift() || null;
   }
   return null;
 };
@@ -14,16 +14,22 @@ export const deleteCookie = (name: string): void => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
 };
 
-export const setCookie = (name: string, value: string, days: number = 7): void => {
+export const setCookie = (
+  name: string,
+  value: string,
+  days: number = 7,
+): void => {
   const date = new Date();
-  date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+  date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
   const expires = `expires=${date.toUTCString()}`;
   document.cookie = `${name}=${value}; ${expires}; path=/`;
 };
 
 // Base API instance (for all API calls)
 const api = axios.create({
-  baseURL: "http://127.0.0.1:8000/api",
+  // baseURL: "http://127.0.0.1:8000/api",
+  baseURL: "https://urbanviewre.com/chai-backend/api",
+
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
@@ -32,7 +38,9 @@ const api = axios.create({
 
 // Auth API instance (for auth-related endpoints)
 export const authApi = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  // baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: "https://urbanviewre.com/chai-backend/api",
+
   headers: {
     "Content-Type": "application/json",
     Accept: "application/json",
