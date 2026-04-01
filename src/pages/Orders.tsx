@@ -1,0 +1,695 @@
+import * as React from "react"
+import { useEffect, useMemo, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  ShoppingCart,
+  Search,
+  Eye,
+  CircleDollarSign,
+  PackageCheck,
+  Clock3,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  AlertTriangle,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Info,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import api from "@/config/axiosConfig";
+import { cva, type VariantProps } from "class-variance-authority"
+
+// Alert Components
+const alertVariants = cva(
+  [
+    "relative flex items-center gap-3",
+    "rounded-[6px] border px-4 py-3",
+    "text-left transition-all duration-200",
+    "bg-white text-zinc-900",
+    "dark:bg-[oklch(0.12_0.01_260)] dark:text-white",
+    "[&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0 [&>svg]:text-current", 
+  ].join(" "),
+  {
+    variants: {
+      variant: {
+        success: "border-emerald-500/50 dark:border-emerald-400/35",
+        error: "border-red-500/50 dark:border-red-400/35",
+        warning: "border-amber-500/50 dark:border-amber-400/35",
+        info: "border-blue-500/50 dark:border-blue-400/35",
+        muted: "border-zinc-300 dark:border-white/10",
+      },
+    },
+    defaultVariants: {
+      variant: "success",
+    },
+  }
+)
+
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
+  return (
+    <div
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  )
+}
+
+function AlertTitle({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("text-[16px] font-semibold leading-none", className)}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={cn("mt-1 text-[14px] leading-[1.35] text-current/75", className)}
+      {...props}
+    />
+  )
+}
+
+// Toast Alert Component
+function ToastAlert({ alert, onClose }: { alert: AlertState; onClose: () => void }) {
+  React.useEffect(() => {
+    if (alert.show) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [alert.show, onClose]);
+
+  if (!alert.show) return null;
+
+  return (
+    <div className="fixed top-16 right-4 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+      <Alert variant={alert.type}>
+        {alert.type === "success" ? (
+          <CheckCircle className="h-5 w-5" />
+        ) : alert.type === "error" ? (
+          <XCircle className="h-5 w-5" />
+        ) : alert.type === "warning" ? (
+          <AlertTriangle className="h-5 w-5" />
+        ) : (
+          <Info className="h-5 w-5" />
+        )}
+
+        <div className="flex flex-col flex-1">
+          <AlertTitle>
+            {alert.title}
+          </AlertTitle>
+          <AlertDescription>{alert.message}</AlertDescription>
+        </div>
+        
+        <button
+          onClick={onClose}
+          className="ml-auto text-current/50 hover:text-current transition-colors"
+          aria-label="Close alert"
+        >
+          <XCircle className="h-4 w-4" />
+        </button>
+      </Alert>
+    </div>
+  );
+}
+
+// Type definitions matching your API response
+type AlertState = {
+  show: boolean;
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message: string;
+};
+
+type OrderType = {
+  o_id: number;
+  order_number: string;
+  customer_id: number;
+  address_id: number;
+  order_date: string;
+  order_status: string;
+  payment_status: string;
+  payment_intent_id: string;
+  created_at: string;
+  updated_at: string;
+  customer?: {
+    customer_id: number;
+    full_name: string;
+    email: string;
+    ph_number: string;
+  };
+  address?: {
+    address_id: number;
+    address_line1: string;
+    address_line2: string | null;
+    city: string;
+    state: string;
+    postal_code: string;
+    country: string;
+  };
+  items?: Array<{
+    order_item_id: number;
+    order_number: string;
+    product_id: number;
+    quantity: number;
+    order_price: number;
+    product?: {
+      product_id: number;
+      product_name: string;
+      price: number;
+    };
+  }>;
+  transaction?: {
+    t_id: number;
+    order_number: string;
+    invoice_number: string;
+    trans_number: string;
+  };
+};
+
+const getOrderStatusClasses = (status: string) => {
+  const statusMap: Record<string, string> = {
+    Delivered: "bg-green-100 text-green-700 border-green-200",
+    shipping: "bg-purple-100 text-purple-700 border-purple-200",
+    proccessing: "bg-blue-100 text-blue-700 border-blue-200",
+    confirmed: "bg-indigo-100 text-indigo-700 border-indigo-200",
+    pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+  };
+  return statusMap[status] || "bg-muted text-muted-foreground border-border";
+};
+
+const getPaymentStatusClasses = (status: string) => {
+  const statusMap: Record<string, string> = {
+    paid: "bg-green-100 text-green-700 border-green-200",
+    pending: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    failed: "bg-red-100 text-red-700 border-red-200",
+    refunded: "bg-slate-100 text-slate-700 border-slate-200",
+  };
+  return statusMap[status] || "bg-muted text-muted-foreground border-border";
+};
+
+export default function Orders() {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<OrderType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(new Date());
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [alert, setAlert] = useState<AlertState>({
+    show: false,
+    type: "success",
+    title: "",
+    message: "",
+  });
+  const ordersPerPage = 15;
+
+  // Show alert function
+  const showAlert = (type: AlertState["type"], title: string, message: string) => {
+    setAlert({
+      show: true,
+      type,
+      title,
+      message,
+    });
+  };
+
+  // Close alert function
+  const closeAlert = () => {
+    setAlert(prev => ({ ...prev, show: false }));
+  };
+
+  // Fetch orders from API
+  const fetchOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get('/orders');
+      if (response.data.status === 'success') {
+        setOrders(response.data.data);
+      } else {
+        setError('Failed to fetch orders');
+        showAlert("error", "Error", "Failed to fetch orders");
+      }
+    } catch (err: any) {
+      console.error('Error fetching orders:', err);
+      setError(err.response?.data?.message || 'Failed to fetch orders');
+      showAlert("error", "Error", err.response?.data?.message || 'Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const formatDateTime = useCallback((date: string | Date): string => {
+    return new Date(date).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    });
+  }, []);
+
+  const filteredOrders = useMemo(() => {
+    const q = search.toLowerCase();
+    return orders.filter((order) => {
+      return (
+        order.o_id.toString().includes(q) ||
+        order.order_number.toLowerCase().includes(q) ||
+        order.customer?.full_name?.toLowerCase().includes(q) ||
+        order.customer?.email?.toLowerCase().includes(q) ||
+        order.order_status.toLowerCase().includes(q) ||
+        order.payment_status.toLowerCase().includes(q)
+      );
+    });
+  }, [orders, search]);
+
+  const totalOrders = orders.length;
+  const pendingOrders = orders.filter(
+    (item) => item.order_status === "pending"
+  ).length;
+  const deliveredOrders = orders.filter(
+    (item) => item.order_status === "Delivered"
+  ).length;
+  const totalRevenue = orders
+    .filter((item) => item.payment_status === "paid")
+    .reduce((sum, item) => {
+      const total = item.items?.reduce((itemSum, orderItem) => {
+        return itemSum + (orderItem.order_price * orderItem.quantity);
+      }, 0) || 0;
+      return sum + total;
+    }, 0);
+
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+
+  const paginatedOrders = useMemo(() => {
+    const startIndex = (currentPage - 1) * ordersPerPage;
+    const endIndex = startIndex + ordersPerPage;
+    return filteredOrders.slice(startIndex, endIndex);
+  }, [filteredOrders, currentPage]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    const oldOrderCount = orders.length;
+    await fetchOrders();
+    setSearch("");
+    setCurrentPage(1);
+    setLastRefreshTime(new Date());
+    setIsRefreshing(false);
+    
+    // Show success message after refresh
+    const newOrderCount = orders.length;
+    showAlert(
+      "success", 
+      "Refresh Successful", 
+      `Orders have been refreshed successfully. ${newOrderCount} orders loaded.`
+    );
+  }, [fetchOrders, orders.length]);
+
+  const handleViewClick = (order: OrderType) => {
+    navigate(`/admin/orders/${order.o_id}`);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  if (loading && orders.length === 0) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <Separator />
+
+        {/* Stats loading skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="rounded-2xl shadow-sm">
+              <CardContent className="flex items-center justify-between p-5">
+                <div>
+                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && orders.length === 0) {
+    return (
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
+        <AlertTriangle className="h-12 w-12 text-red-500" />
+        <p className="text-muted-foreground">{error}</p>
+        <Button onClick={fetchOrders}>Try Again</Button>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Toast Alert */}
+      <ToastAlert alert={alert} onClose={closeAlert} />
+
+      <div className="space-y-6 p-6">
+        {/* Header Section */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">All Orders</h1>
+            <p className="text-sm text-muted-foreground">
+              Manage orders, customer details, payment status, and delivery progress.
+            </p>
+            {lastRefreshTime && (
+              <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+                <Clock className="h-3 w-3" />
+                <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
+              <RefreshCw className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Stats Cards */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Orders</p>
+                <h3 className="mt-1 text-2xl font-bold">{totalOrders}</h3>
+              </div>
+              <div className="rounded-2xl bg-primary/10 p-3">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">Pending Orders</p>
+                <h3 className="mt-1 text-2xl font-bold">{pendingOrders}</h3>
+              </div>
+              <div className="rounded-2xl bg-yellow-100 p-3">
+                <Clock3 className="h-5 w-5 text-yellow-700" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">Delivered Orders</p>
+                <h3 className="mt-1 text-2xl font-bold">{deliveredOrders}</h3>
+              </div>
+              <div className="rounded-2xl bg-green-100 p-3">
+                <PackageCheck className="h-5 w-5 text-green-700" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl shadow-sm">
+            <CardContent className="flex items-center justify-between p-5">
+              <div>
+                <p className="text-sm text-muted-foreground">Revenue</p>
+                <h3 className="mt-1 text-2xl font-bold">${totalRevenue.toFixed(2)}</h3>
+              </div>
+              <div className="rounded-2xl bg-emerald-100 p-3">
+                <CircleDollarSign className="h-5 w-5 text-emerald-700" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Main Table Card */}
+        <Card className="rounded-2xl shadow-sm">
+          <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <CardTitle>Order Listing</CardTitle>
+              <CardDescription>
+                View and inspect all order records.
+              </CardDescription>
+            </div>
+
+            <div className="relative w-full md:w-80">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search by ID, order number, customer..."
+                className="pl-10"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </CardHeader>
+
+          <CardContent>
+            <div className="overflow-x-auto rounded-xl border">
+              <Table className="custom-table-header">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-20 text-center">ID</TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer Name</TableHead>
+                    <TableHead>Total Amount</TableHead>
+                    <TableHead>Order Status</TableHead>
+                    <TableHead>Payment Status</TableHead>
+                    <TableHead className="text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  {paginatedOrders.length > 0 ? (
+                    paginatedOrders.map((order) => {
+                      const totalAmount = order.items?.reduce((sum, item) => {
+                        return sum + (item.order_price * item.quantity);
+                      }, 0) || 0;
+
+                      return (
+                        <TableRow key={order.o_id}>
+                          <TableCell className="font-mono text-sm text-center">
+                            {order.o_id}
+                          </TableCell>
+                          <TableCell>
+                            <p className="font-medium">{order.order_number}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {formatDateTime(order.order_date)}
+                            </p>
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium">{order.customer?.full_name || 'N/A'}</p>
+                              <p className="text-xs text-muted-foreground">{order.customer?.email || 'N/A'}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>${totalAmount.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${getOrderStatusClasses(
+                                order.order_status
+                              )}`}
+                            >
+                              {order.order_status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${getPaymentStatusClasses(
+                                order.payment_status
+                              )}`}
+                            >
+                              {order.payment_status}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center justify-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleViewClick(order)}
+                                title="View Order Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={7}
+                        className="py-12 text-center text-sm text-muted-foreground"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <ShoppingCart className="h-8 w-8 opacity-50" />
+                          <p>No orders found</p>
+                          {search && (
+                            <Button
+                              variant="link"
+                              onClick={handleRefresh}
+                              className="text-sm"
+                            >
+                              Clear search
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            {filteredOrders.length > 0 && (
+              <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing{" "}
+                  <span className="font-medium">
+                    {(currentPage - 1) * ordersPerPage + 1}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium">
+                    {Math.min(currentPage * ordersPerPage, filteredOrders.length)}
+                  </span>{" "}
+                  of <span className="font-medium">{filteredOrders.length}</span> orders
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="mr-1 h-4 w-4" />
+                    Prev
+                  </Button>
+
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
+                    let page = index + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
+                      if (page > totalPages) return null;
+                    }
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  }).filter(Boolean)}
+
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="text-muted-foreground">...</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(totalPages)}
+                        className="min-w-9"
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}

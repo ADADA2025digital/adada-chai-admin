@@ -1,0 +1,163 @@
+/* Custom Table Header Styling */
+.custom-table-header thead tr th {
+  background-color: var(--table-header-bg) !important;
+  color: var(--table-header-foreground) !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important;
+  border-bottom: 2px solid var(--table-header-border) !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Dark mode table header */
+.dark .custom-table-header thead tr th {
+  background-color: var(--table-header-bg-dark) !important;
+  color: var(--table-header-foreground-dark) !important;
+  border-bottom: 2px solid var(--table-header-border-dark) !important;
+}
+
+/* Custom table row styling */
+.custom-table-row:hover {
+  background-color: var(--table-row-hover) !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.dark .custom-table-row:hover {
+  background-color: var(--table-row-hover-dark) !important;
+}
+
+
+/* modal scroller */
+.modal-scroll {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(120, 120, 120, 0.35) transparent;
+  scroll-behavior: smooth;
+}
+
+/* Chrome, Edge, Safari */
+.modal-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-scroll::-webkit-scrollbar-track {
+  background: transparent;
+  margin-block: 10px;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(120, 120, 120, 0.18),
+    rgba(120, 120, 120, 0.42)
+  );
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(120, 120, 120, 0.28),
+    rgba(120, 120, 120, 0.58)
+  );
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+
+/* Notification Scroller */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* CKEditor Dark Mode Support */
+.dark .ck.ck-editor__main > .ck-editor__editable {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  border-color: hsl(var(--border));
+}
+
+.dark .ck.ck-editor__top .ck-toolbar {
+  background-color: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+.dark .ck.ck-button {
+  color: hsl(var(--foreground));
+}
+
+.dark .ck.ck-button:hover:not(.ck-disabled) {
+  background-color: hsl(var(--accent));
+}
+
+.dark .ck.ck-button.ck-on {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.dark .ck.ck-dropdown__panel {
+  background-color: hsl(var(--popover));
+  border-color: hsl(var(--border));
+}
+
+.dark .ck.ck-list__item .ck-button {
+  color: hsl(var(--popover-foreground));
+}
+
+.dark .ck.ck-list__item .ck-button:hover:not(.ck-disabled) {
+  background-color: hsl(var(--accent));
+}
+
+/* CKEditor heading styles */
+.dark .ck-content h1,
+.dark .ck-content h2,
+.dark .ck-content h3 {
+  color: hsl(var(--foreground));
+}
+
+.dark .ck-content p {
+  color: hsl(var(--foreground));
+}
+
+/* Modal scroll styling */
+.modal-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-scroll::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 4px;
+}
+
+.modal-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Remove number input spinners */
+.no-spinner::-webkit-inner-spin-button,
+.no-spinner::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
+.ck-editor-custom .ck-editor__editable {
+  max-height: 200px;
+  min-height: 150px;
+  overflow-y: auto;
+}

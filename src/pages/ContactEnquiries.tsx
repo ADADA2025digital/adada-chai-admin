@@ -1,0 +1,800 @@
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type ChangeEvent,
+  useCallback,
+} from "react";
+import { formatDate } from "../constant/data";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableHead,
+  TableRow,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Mail,
+  Search,
+  Eye,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  Clock,
+  AlertTriangle,
+  Loader2,
+  User,
+  Phone,
+  MessageSquare,
+  Calendar,
+  CheckCircle,
+  XCircle,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import api from "@/config/axiosConfig";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"; // Import Alert components
+
+// Contact Message Interface - Updated to match API response
+interface ContactMessage {
+  contact_id: number; // Changed from 'id' to 'contact_id'
+  sender_name: string;
+  sender_email: string;
+  sender_ph_no: string | null;
+  sender_message: string;
+  created_at: string;
+  updated_at: string;
+}
+
+type LoadingState = {
+  fetching: boolean;
+  refreshing: boolean;
+  deleting: boolean;
+};
+
+// Alert interface
+interface AlertState {
+  show: boolean;
+  type: "success" | "error";
+  message: string;
+}
+
+export default function ContactEnquiries() {
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [search, setSearch] = useState("");
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
+  const [loading, setLoading] = useState<LoadingState>({
+    fetching: true,
+    refreshing: false,
+    deleting: false,
+  });
+  const [error, setError] = useState<string | null>(null);
+  
+  // Add alert state
+  const [alert, setAlert] = useState<AlertState>({
+    show: false,
+    type: "success",
+    message: "",
+  });
+
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [viewMessage, setViewMessage] = useState<ContactMessage | null>(null);
+  const [deleteMessageId, setDeleteMessageId] = useState<number | null>(null);
+  const [deleteMessagePreview, setDeleteMessagePreview] = useState<{
+    name: string;
+    message: string;
+    date: string;
+  } | null>(null);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const messagesPerPage = 15;
+
+  // Show alert function with auto-dismiss
+  const showAlert = useCallback((type: "success" | "error", message: string) => {
+    setAlert({ show: true, type, message });
+    setTimeout(() => {
+      setAlert({ show: false, type: "success", message: "" });
+    }, 5000);
+  }, []);
+
+  // Fetch all contact messages from API
+  const fetchMessages = useCallback(async (showLoading = true, showSuccessAlert = false) => {
+    try {
+      if (showLoading) {
+        setLoading((prev) => ({ ...prev, fetching: true }));
+      }
+      setError(null);
+
+      const response = await api.get("/contacts");
+
+      if (
+        response.data.status === "success" &&
+        Array.isArray(response.data.data)
+      ) {
+        setMessages(response.data.data);
+        setLastRefreshTime(new Date());
+        
+        // Show success alert if requested (for refresh operations)
+        if (showSuccessAlert) {
+          showAlert("success", "Messages refreshed successfully!");
+        }
+      } else {
+        console.error("❌ Invalid response format:", response.data);
+        throw new Error("Invalid response format from server");
+      }
+    } catch (err: any) {
+      console.error("❌ Error fetching messages:", {
+        message: err.message,
+        status: err.response?.status,
+        data: err.response?.data,
+      });
+      const errorMessage = err.response?.data?.message ||
+          err.message ||
+          "Failed to fetch contact messages";
+      
+      setError(errorMessage);
+      
+      // Show error alert if this is a refresh operation
+      if (showSuccessAlert) {
+        showAlert("error", errorMessage);
+      }
+    } finally {
+      if (showLoading) {
+        setLoading((prev) => ({ ...prev, fetching: false }));
+      }
+    }
+  }, [showAlert]);
+
+  // Delete a contact message
+  const handleDeleteMessage = useCallback(async () => {
+    if (!deleteMessageId) {
+      console.error("❌ No message ID to delete");
+      return;
+    }
+
+    setLoading((prev) => ({ ...prev, deleting: true }));
+
+    try {
+      const response = await api.delete(`/contacts/${deleteMessageId}`);
+
+      if (response.data.status === "success") {
+        
+        // Show success alert
+        showAlert("success", "Message deleted successfully!");
+        
+        // Remove from local state - using contact_id to filter
+        setMessages((prev) =>
+          prev.filter((msg) => msg.contact_id !== deleteMessageId),
+        );
+        setIsDeleteOpen(false);
+        setDeleteMessageId(null);
+        setDeleteMessagePreview(null);
+
+        // Refresh if current page becomes empty
+        const remainingMessages = messages.filter(
+          (msg) => msg.contact_id !== deleteMessageId,
+        );
+        if (remainingMessages.length === 0 && currentPage > 1) {
+          setCurrentPage((prev) => prev - 1);
+        }
+      } else {
+        throw new Error("Failed to delete message");
+      }
+    } catch (err: any) {
+      console.error("❌ Error deleting message:", err);
+      const errorMessage =
+        err.response?.data?.message ||
+        err.message ||
+        "Failed to delete message";
+      
+      // Show error alert
+      showAlert("error", errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading((prev) => ({ ...prev, deleting: false }));
+    }
+  }, [deleteMessageId, messages, currentPage, showAlert]);
+
+  // Initial load
+  useEffect(() => {
+    fetchMessages(true, false); // Don't show alert on initial load
+  }, [fetchMessages]);
+
+  const formatDateTime = useCallback((date: Date): string => {
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }, []);
+
+  const formatMessageDate = useCallback(
+    (dateString: string): string => {
+      const date = new Date(dateString);
+      return formatDateTime(date);
+    },
+    [formatDateTime],
+  );
+
+  // Filter messages based on search - using contact_id
+  const filteredMessages = useMemo(() => {
+    const q = search.toLowerCase().trim();
+
+    if (!q) return messages;
+
+    const filtered = messages.filter((message) => {
+      return (
+        message.contact_id.toString().includes(q) ||
+        message.sender_name.toLowerCase().includes(q) ||
+        message.sender_email.toLowerCase().includes(q) ||
+        (message.sender_ph_no && message.sender_ph_no.includes(q)) ||
+        message.sender_message.toLowerCase().includes(q)
+      );
+    });
+
+    return filtered;
+  }, [messages, search]);
+
+  const totalMessages = messages.length;
+
+  // Get message statistics
+  const recentMessages = useMemo(() => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    return messages.filter((msg) => new Date(msg.created_at) >= oneWeekAgo)
+      .length;
+  }, [messages]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredMessages.length / messagesPerPage),
+  );
+
+  const paginatedMessages = useMemo(() => {
+    const startIndex = (currentPage - 1) * messagesPerPage;
+    const endIndex = startIndex + messagesPerPage;
+    return filteredMessages.slice(startIndex, endIndex);
+  }, [filteredMessages, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const handleRefresh = useCallback(async () => {
+    setLoading((prev) => ({ ...prev, refreshing: true }));
+    await fetchMessages(false, true); // Show success/error alert on refresh
+    setSearch("");
+    setCurrentPage(1);
+    setLoading((prev) => ({ ...prev, refreshing: false }));
+  }, [fetchMessages]);
+
+  const handleViewClick = (message: ContactMessage) => {
+    setViewMessage(message);
+    setIsViewOpen(true);
+  };
+
+  const handleDeleteClick = (message: ContactMessage) => {
+    // Verify the message has a valid ID
+    if (!message.contact_id) {
+      console.error("❌ Message ID is missing or invalid:", message);
+      setError("Cannot delete message: Invalid message ID");
+      return;
+    }
+
+    setDeleteMessageId(message.contact_id);
+    setDeleteMessagePreview({
+      name: message.sender_name,
+      message: message.sender_message,
+      date: formatMessageDate(message.created_at),
+    });
+    setIsDeleteOpen(true);
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  if (loading.fetching && messages.length === 0) {
+    return (
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <Separator />
+
+        {/* Stats loading skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="rounded-2xl shadow-sm">
+              <CardContent className="flex items-center justify-between p-5">
+                <div>
+                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 p-6">
+      {/* Alert Notification */}
+      {alert.show && (
+        <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+          <Alert variant={alert.type}>
+            {alert.type === "success" ? (
+              <CheckCircle className="h-5 w-5" />
+            ) : (
+              <XCircle className="h-5 w-5" />
+            )}
+
+            <div className="flex flex-col">
+              <AlertTitle>
+                {alert.type === "success" ? "Success" : "Error"}
+              </AlertTitle>
+              <AlertDescription>{alert.message}</AlertDescription>
+            </div>
+          </Alert>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Customer Enquiries
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Manage and respond to customer contact messages and inquiries.
+          </p>
+          {lastRefreshTime && (
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+              <Clock className="h-3 w-3" />
+              <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading.refreshing}
+          >
+            <RefreshCw
+              className={cn(
+                "mr-2 h-4 w-4",
+                loading.refreshing && "animate-spin",
+              )}
+            />
+            {loading.refreshing ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
+      </div>
+
+      <Separator />
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            <span className="text-sm">{error}</span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="ml-auto text-red-700 hover:text-red-800"
+              onClick={() => setError(null)}
+            >
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Statistics Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Total Messages</p>
+              <h3 className="mt-1 text-2xl font-bold">{totalMessages}</h3>
+            </div>
+            <div className="rounded-2xl bg-primary/10 p-3">
+              <Mail className="h-5 w-5 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">Last 7 Days</p>
+              <h3 className="mt-1 text-2xl font-bold">{recentMessages}</h3>
+            </div>
+            <div className="rounded-2xl bg-blue-100 p-3">
+              <Calendar className="h-5 w-5 text-blue-700" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl shadow-sm">
+          <CardContent className="flex items-center justify-between p-5">
+            <div>
+              <p className="text-sm text-muted-foreground">With Phone Number</p>
+              <h3 className="mt-1 text-2xl font-bold">
+                {messages.filter((msg) => msg.sender_ph_no).length}
+              </h3>
+            </div>
+            <div className="rounded-2xl bg-green-100 p-3">
+              <Phone className="h-5 w-5 text-green-700" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Messages Table */}
+      <Card className="rounded-2xl shadow-sm">
+        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <CardTitle>Contact Messages</CardTitle>
+            <CardDescription>
+              View and manage all customer inquiries.
+            </CardDescription>
+          </div>
+          <div className="relative w-full md:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, email, or message..."
+              className="pl-10"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto rounded-xl border">
+            <Table className="custom-table-header">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-20 text-center">ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Phone</TableHead>
+                  <TableHead>Message Preview</TableHead>
+                  <TableHead>Received</TableHead>
+                  <TableHead className="text-center">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedMessages.length > 0 ? (
+                  paginatedMessages.map((message) => (
+                    <TableRow key={message.contact_id} className="group">
+                      <TableCell className="font-mono text-sm text-center">
+                        {message.contact_id}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                          <span>{message.sender_name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">
+                            {message.sender_email}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {message.sender_ph_no ? (
+                          <div className="flex items-center gap-2">
+                            <Phone className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">
+                              {message.sender_ph_no}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm truncate max-w-[200px]">
+                            {message.sender_message.length > 50
+                              ? `${message.sender_message.substring(0, 50)}...`
+                              : message.sender_message}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {formatMessageDate(message.created_at)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleViewClick(message)}
+                            title="View Full Message"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDeleteClick(message)}
+                            title="Delete Message"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell
+                      colSpan={7}
+                      className="py-12 text-center text-sm text-muted-foreground"
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Mail className="h-8 w-8 opacity-50" />
+                        <p>No messages found</p>
+                        {search && (
+                          <Button
+                            variant="link"
+                            onClick={() => setSearch("")}
+                            className="text-sm"
+                          >
+                            Clear search
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
+          {filteredMessages.length > 0 && (
+            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing{" "}
+                <span className="font-medium">
+                  {(currentPage - 1) * messagesPerPage + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-medium">
+                  {Math.min(
+                    currentPage * messagesPerPage,
+                    filteredMessages.length,
+                  )}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium">{filteredMessages.length}</span>{" "}
+                messages
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Prev
+                </Button>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                  let page = index + 1;
+                  if (totalPages > 5 && currentPage > 3) {
+                    page = currentPage - 2 + index;
+                    if (page > totalPages) return null;
+                  }
+                  if (page > totalPages) return null;
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => handlePageChange(page)}
+                      className="min-w-9"
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+                {totalPages > 5 && currentPage < totalPages - 2 && (
+                  <>
+                    <span className="px-2">...</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(totalPages)}
+                      className="min-w-9"
+                    >
+                      {totalPages}
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* View Message Modal */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Message Details</DialogTitle>
+            <DialogDescription>
+              Complete customer message information.
+            </DialogDescription>
+          </DialogHeader>
+
+          {viewMessage && (
+            <div className="space-y-6">
+              {/* Sender Information Section */}
+              <div className="rounded-lg border bg-card p-6">
+                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Sender Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Name
+                    </p>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {viewMessage.sender_name}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Email
+                    </p>
+                    <p className="text-sm font-medium flex items-center gap-2 break-all">
+                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      {viewMessage.sender_email}
+                    </p>
+                  </div>
+                  {viewMessage.sender_ph_no && (
+                    <div className="space-y-1">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Phone Number
+                      </p>
+                      <p className="text-sm font-medium flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        {viewMessage.sender_ph_no}
+                      </p>
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Received Date
+                    </p>
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-muted-foreground" />
+                      {formatMessageDate(viewMessage.created_at)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Message Content Section */}
+              <div className="rounded-lg border bg-card p-6">
+                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <MessageSquare className="h-4 w-4" />
+                  Message Content
+                </h3>
+                <div className="bg-muted/30 rounded-lg p-4">
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                    {viewMessage.sender_message}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal - FIXED */}
+      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
+            </div>
+            <DialogDescription className="pt-4">
+              Are you sure you want to delete this message? This action cannot
+              be undone.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-2 sm:gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsDeleteOpen(false);
+                setDeleteMessageId(null);
+                setDeleteMessagePreview(null);
+              }}
+              disabled={loading.deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteMessage}
+              disabled={loading.deleting || !deleteMessageId}
+            >
+              {loading.deleting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete Message
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
