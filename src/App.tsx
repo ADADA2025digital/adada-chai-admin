@@ -30,6 +30,7 @@ import { ForgotPasswordPage } from "./pages/ForgotPassword";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import DiscountPage from "./pages/Discount";
 import ProductRentLease from "./pages/ProductRentLease";
+import DeliveryChargePage from "./pages/DeliveryCharges";
 
 // App.tsx - Update ProtectedRoute component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -240,6 +241,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <CategoryPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/delivery-charges"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <DeliveryChargePage />
             </AppLayout>
           </ProtectedRoute>
         }

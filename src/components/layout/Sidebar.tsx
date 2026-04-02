@@ -30,6 +30,7 @@ import {
   CircleHelp,
   BadgePercent,
   CalendarRange,
+  Truck,
 } from "lucide-react";
 
 import { useSidebar } from "@/context/SidebarContext";
@@ -142,6 +143,17 @@ const navigation: NavItemType[] = [
         name: "Customer Enquiries",
         href: "/admin/contact-enquiries",
         icon: Star,
+      },
+    ],
+  },
+  {
+    name: "Delivery Charges",
+    icon: Truck,
+    submenu: [
+      {
+        name: "Manage Delivery Charge",
+        href: "/admin/delivery-charges",
+        icon: Truck,
       },
     ],
   },
