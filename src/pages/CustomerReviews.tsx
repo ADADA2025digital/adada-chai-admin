@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Card,
   CardContent,
@@ -24,7 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Star,
@@ -59,7 +57,6 @@ interface ApiReview {
   };
 }
 
-// UI Review Type
 interface CustomerReview {
   id: number;
   reviewId: string;
@@ -137,13 +134,11 @@ export default function CustomerReviews() {
 
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewReview, setViewReview] = useState<CustomerReview | null>(null);
-  const [adminNote, setAdminNote] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const reviewsPerPage = 15;
 
-  // Alert state
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -162,10 +157,10 @@ export default function CustomerReviews() {
     });
   }, []);
 
-  // Show alert helper with auto-dismiss
   const showAlert = useCallback(
     (type: "success" | "error", message: string) => {
       setAlert({ show: true, type, message });
+
       setTimeout(() => {
         setAlert({ show: false, type: "success", message: "" });
       }, 5000);
@@ -173,31 +168,35 @@ export default function CustomerReviews() {
     [],
   );
 
-  // Fetch all reviews
   const fetchReviews = useCallback(
     async (showSuccessAlert = false) => {
       try {
         setIsRefreshing(true);
+
         const response = await api.get("/reviews");
 
         if (response.data.status === "success") {
-          const apiReviews: ApiReview[] = response.data.data;
+          const apiReviews: ApiReview[] = response.data.data || [];
 
-          // Transform API data to UI format
-          const transformedReviews: CustomerReview[] = apiReviews.map(
-            (review, index) => ({
+          // Latest review first
+          const sortedReviews = [...apiReviews].sort(
+            (a, b) => b.re_id - a.re_id,
+          );
+
+          const transformedReviews: CustomerReview[] = sortedReviews.map(
+            (review) => ({
               id: review.re_id,
               reviewId: `REV-${review.re_id.toString().padStart(4, "0")}`,
               orderId: review.order_number,
-              customerName: "Customer", // Since API doesn't provide customer name
-              email: "customer@example.com", // Placeholder
+              customerName: "Customer",
+              email: "customer@example.com",
               productName:
                 review.product?.product_name || `Product ${review.product_id}`,
               rating: review.rating,
               comment: review.review_comment,
-              images: review.review_images,
+              images: review.review_images || [],
               status: review.review_status,
-              date: new Date().toISOString(), // API doesn't provide date, using current
+              date: new Date().toISOString(),
               adminNote: "",
             }),
           );
@@ -205,17 +204,16 @@ export default function CustomerReviews() {
           setReviews(transformedReviews);
           setLastRefreshTime(new Date());
 
-          // Show success alert if requested (for refresh operations)
           if (showSuccessAlert) {
             showAlert("success", "Reviews refreshed successfully!");
           }
         }
       } catch (error: any) {
         console.error("Error fetching reviews:", error);
-        const errorMessage =
-          error.response?.data?.message || "Failed to fetch reviews";
 
-        // Show error alert if this is a refresh operation
+        const errorMessage =
+          error?.response?.data?.message || "Failed to fetch reviews";
+
         if (showSuccessAlert) {
           showAlert("error", errorMessage);
         }
@@ -227,39 +225,38 @@ export default function CustomerReviews() {
     [showAlert],
   );
 
-  // Update review status
   const updateReviewStatus = useCallback(
-    async (reviewId: number, status: string) => {
+    async (reviewId: number, status: "approved" | "rejected") => {
       try {
         setIsUpdating(true);
+
         const response = await api.put(`/reviews/${reviewId}/status`, {
           review_status: status,
         });
 
         if (response.data.status === "success") {
           showAlert("success", `Review ${status} successfully`);
-
-          // Refresh the list
           await fetchReviews(false);
           return true;
         }
+
+        return false;
       } catch (error: any) {
         console.error("Error updating review status:", error);
         showAlert(
           "error",
-          error.response?.data?.message || "Failed to update review status",
+          error?.response?.data?.message || "Failed to update review status",
         );
         return false;
       } finally {
         setIsUpdating(false);
       }
     },
-    [showAlert, fetchReviews],
+    [fetchReviews, showAlert],
   );
 
-  // Initial load
   useEffect(() => {
-    fetchReviews(false); // Don't show alert on initial load
+    fetchReviews(false);
   }, [fetchReviews]);
 
   const filteredReviews = useMemo(() => {
@@ -318,12 +315,11 @@ export default function CustomerReviews() {
   }, [currentPage, totalPages]);
 
   const handleRefresh = useCallback(async () => {
-    await fetchReviews(true); // Show success/error alert on refresh
+    await fetchReviews(true);
   }, [fetchReviews]);
 
   const handleViewClick = (review: CustomerReview) => {
     setViewReview(review);
-    setAdminNote(review.adminNote || "");
     setIsViewOpen(true);
   };
 
@@ -374,22 +370,22 @@ export default function CustomerReviews() {
       <div className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
+
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
@@ -397,7 +393,7 @@ export default function CustomerReviews() {
 
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -407,9 +403,8 @@ export default function CustomerReviews() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Alert Notification */}
       {alert.show && (
-        <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-[9999] w-full max-w-sm duration-300">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -427,7 +422,6 @@ export default function CustomerReviews() {
         </div>
       )}
 
-      {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -436,6 +430,7 @@ export default function CustomerReviews() {
           <p className="text-sm text-muted-foreground">
             Manage customer feedback, ratings, and review approvals.
           </p>
+
           {lastRefreshTime && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3" />
@@ -460,7 +455,6 @@ export default function CustomerReviews() {
 
       <Separator />
 
-      {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
@@ -511,7 +505,6 @@ export default function CustomerReviews() {
         </Card>
       </div>
 
-      {/* Main Table Card */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -553,7 +546,7 @@ export default function CustomerReviews() {
                 {paginatedReviews.length > 0 ? (
                   paginatedReviews.map((review) => (
                     <TableRow key={review.id} className="group">
-                      <TableCell className="font-mono text-sm text-center">
+                      <TableCell className="text-center font-mono text-sm">
                         {review.reviewId}
                       </TableCell>
                       <TableCell className="font-mono text-sm">
@@ -639,7 +632,6 @@ export default function CustomerReviews() {
             </Table>
           </div>
 
-          {/* Pagination */}
           {filteredReviews.length > 0 && (
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
@@ -671,10 +663,12 @@ export default function CustomerReviews() {
 
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                   let page = index + 1;
+
                   if (totalPages > 5 && currentPage > 3) {
                     page = currentPage - 2 + index;
                     if (page > totalPages) return null;
                   }
+
                   if (page > totalPages) return null;
 
                   return (
@@ -689,6 +683,7 @@ export default function CustomerReviews() {
                     </Button>
                   );
                 })}
+
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2">...</span>
@@ -718,9 +713,8 @@ export default function CustomerReviews() {
         </CardContent>
       </Card>
 
-      {/* View Review Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="modal-scroll max-h-[80vh] sm:max-w-6xl overflow-y-auto">
+        <DialogContent className="modal-scroll max-h-[80vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Review Details</DialogTitle>
             <DialogDescription>
@@ -730,12 +724,12 @@ export default function CustomerReviews() {
 
           {viewReview && (
             <div className="space-y-6">
-              {/* Review Information */}
               <div className="rounded-xl border p-4">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                   <MessageSquareText className="h-5 w-5" />
                   Review Information
                 </h3>
+
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <p className="text-xs text-muted-foreground">Review ID</p>
@@ -743,29 +737,33 @@ export default function CustomerReviews() {
                       {viewReview.reviewId}
                     </p>
                   </div>
+
                   <div>
                     <p className="text-xs text-muted-foreground">Order ID</p>
                     <p className="font-mono text-sm font-medium">
                       {viewReview.orderId}
                     </p>
                   </div>
+
                   <div>
                     <p className="text-xs text-muted-foreground">Product</p>
                     <p className="font-medium">{viewReview.productName}</p>
                   </div>
+
                   <div>
                     <p className="text-xs text-muted-foreground">Rating</p>
-                    <div className="flex items-center gap-2 mt-1">
+                    <div className="mt-1 flex items-center gap-2">
                       <StarRating rating={viewReview.rating} />
                       <span className="text-sm font-medium">
                         ({viewReview.rating}/5)
                       </span>
                     </div>
                   </div>
+
                   <div>
                     <p className="text-xs text-muted-foreground">Status</p>
                     <span
-                      className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium mt-1 ${getStatusClasses(
+                      className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(
                         viewReview.status,
                       )}`}
                     >
@@ -773,6 +771,7 @@ export default function CustomerReviews() {
                       {getStatusText(viewReview.status)}
                     </span>
                   </div>
+
                   <div>
                     <p className="text-xs text-muted-foreground">Date</p>
                     <p className="font-medium">{formatDate(viewReview.date)}</p>
@@ -781,17 +780,18 @@ export default function CustomerReviews() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                {/* User Information */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                     <Users className="h-5 w-5" />
                     User Information
                   </h3>
+
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="text-xs text-muted-foreground">Name</p>
                       <p className="font-medium">{viewReview.customerName}</p>
                     </div>
+
                     <div>
                       <p className="text-xs text-muted-foreground">Email</p>
                       <p className="font-medium">{viewReview.email}</p>
@@ -799,36 +799,33 @@ export default function CustomerReviews() {
                   </div>
                 </div>
 
-                {/* Customer Comment */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                  <h3 className="mb-2 flex items-center gap-2 text-lg font-semibold">
                     <MessageSquareText className="h-5 w-5" />
                     Customer Comment
                   </h3>
-                  <p className="text-sm leading-relaxed">
-                    {viewReview.comment}
-                  </p>
+                  <p className="text-sm leading-relaxed">{viewReview.comment}</p>
                 </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                {/* Review Images */}
                 {viewReview.images.length > 0 && (
                   <div className="rounded-xl border p-4">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                       <ImageIcon className="h-5 w-5" />
                       Review Images
                     </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-2 gap-4">
+
+                    <div className="grid grid-cols-2 gap-4 md:grid-cols-2">
                       {viewReview.images.map((image, index) => (
-                        <div key={index} className="relative group">
+                        <div key={index} className="group relative">
                           <img
                             src={image}
                             alt={`Review image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                            className="h-32 w-full cursor-pointer rounded-lg border object-cover transition-opacity hover:opacity-90"
                             onClick={() => window.open(image, "_blank")}
                           />
-                          <p className="text-xs text-center mt-1 text-muted-foreground">
+                          <p className="mt-1 text-center text-xs text-muted-foreground">
                             Review image {index + 1}
                           </p>
                         </div>
@@ -837,12 +834,12 @@ export default function CustomerReviews() {
                   </div>
                 )}
 
-                {/* Review Actions */}
                 <div className="rounded-xl border p-4">
-                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                     <ThumbsUp className="h-5 w-5" />
                     Review Actions
                   </h3>
+
                   <div className="flex gap-3">
                     <Button
                       onClick={handleApproveReview}
@@ -856,6 +853,7 @@ export default function CustomerReviews() {
                       )}
                       Approve Review
                     </Button>
+
                     <Button
                       onClick={handleRejectReview}
                       disabled={viewReview.status === "rejected" || isUpdating}
@@ -870,20 +868,23 @@ export default function CustomerReviews() {
                       Reject Review
                     </Button>
                   </div>
+
                   {viewReview.status === "approved" && (
-                    <p className="text-sm text-green-600 mt-3 flex items-center gap-1">
+                    <p className="mt-3 flex items-center gap-1 text-sm text-green-600">
                       <CheckCircle className="h-3 w-3" />
                       This review has been approved and is visible to customers
                     </p>
                   )}
+
                   {viewReview.status === "rejected" && (
-                    <p className="text-sm text-red-600 mt-3 flex items-center gap-1">
+                    <p className="mt-3 flex items-center gap-1 text-sm text-red-600">
                       <XCircle className="h-3 w-3" />
                       This review has been rejected and is hidden from customers
                     </p>
                   )}
+
                   {viewReview.status === "pending" && (
-                    <p className="text-sm text-yellow-600 mt-3 flex items-center gap-1">
+                    <p className="mt-3 flex items-center gap-1 text-sm text-yellow-600">
                       <Clock3 className="h-3 w-3" />
                       This review is pending approval
                     </p>

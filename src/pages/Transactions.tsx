@@ -30,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select,
@@ -49,21 +48,26 @@ import {
   Printer,
   CreditCard,
   User,
-  Calendar,
-  Mail,
-  Phone,
   DollarSign,
   Package,
   Clock,
   AlertCircle,
   CheckCircle,
-  XCircle,
   Clock3,
   FileText,
   ShoppingCart,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
+
+type OrderItem = {
+  order_item_id: number;
+  product_id: number;
+  product_name: string;
+  quantity: number;
+  order_price: number;
+  subtotal: number;
+};
 
 type TransactionType = {
   id: number;
@@ -81,59 +85,42 @@ type TransactionType = {
   paymentDate: string;
   createdAt: string;
   lastUpdated: string;
+  createdAtRaw?: string;
+  updatedAtRaw?: string;
   orderTotal: number;
   viewUrl?: string;
   downloadUrl?: string;
   items?: OrderItem[];
 };
 
-type OrderItem = {
-  order_item_id: number;
-  product_id: number;
-  product_name: string;
-  quantity: number;
-  order_price: number;
-  subtotal: number;
-};
-
-// Helper function to calculate paid amount from order items
 const calculatePaidAmountFromItems = (apiTransaction: any): number => {
   const order = apiTransaction.order || {};
   const items = order.items || [];
 
   if (items.length === 0) return 0;
 
-  const total = items.reduce((sum: number, item: any) => {
-    const price = parseFloat(item.order_price);
-    const quantity = parseInt(item.quantity);
+  return items.reduce((sum: number, item: any) => {
+    const price = parseFloat(item.order_price || 0);
+    const quantity = parseInt(item.quantity || 0);
     return sum + price * quantity;
   }, 0);
-
-  return total;
 };
 
-// Helper function to map API response to UI transaction format
 const mapApiTransactionToUI = (apiTransaction: any): TransactionType => {
-  // Safely access nested properties
   const order = apiTransaction.order || {};
   const customer = order.customer || {};
 
-  // Determine payment status - it might be in transaction or order
   const paymentStatus =
     apiTransaction.payment_status || order.payment_status || "pending";
 
-  // Calculate total amount from order items
   const totalAmount = calculatePaidAmountFromItems(apiTransaction);
 
-  // Determine if payment is completed based on status
   const isPaid =
     paymentStatus?.toLowerCase() === "paid" ||
     paymentStatus?.toLowerCase() === "completed";
 
-  // Paid amount is total amount if paid, otherwise 0
   const paidAmount = isPaid ? totalAmount : 0;
 
-  // Format payment date - if no payment_date, use created_at if paid
   let paymentDate = "Pending";
   if (apiTransaction.payment_date) {
     paymentDate = new Date(apiTransaction.payment_date).toLocaleDateString();
@@ -141,17 +128,15 @@ const mapApiTransactionToUI = (apiTransaction: any): TransactionType => {
     paymentDate = new Date(apiTransaction.created_at).toLocaleDateString();
   }
 
-  // Map order items for display
   const items = (order.items || []).map((item: any) => ({
     order_item_id: item.order_item_id,
     product_id: item.product_id,
     product_name: item.product?.product_name || "Unknown Product",
-    quantity: item.quantity,
-    order_price: parseFloat(item.order_price),
-    subtotal: parseFloat(item.order_price) * item.quantity,
+    quantity: Number(item.quantity || 0),
+    order_price: parseFloat(item.order_price || 0),
+    subtotal: parseFloat(item.order_price || 0) * Number(item.quantity || 0),
   }));
 
-  // FIX: Access customer name correctly from the nested structure
   const customerName =
     customer.full_name ||
     apiTransaction.customer_name ||
@@ -170,31 +155,35 @@ const mapApiTransactionToUI = (apiTransaction: any): TransactionType => {
     order.customer_phone ||
     "N/A";
 
+  const transactionPrimaryId = Number(apiTransaction.t_id || apiTransaction.id || 0);
+
   return {
-    id: apiTransaction.t_id || apiTransaction.id,
-    transactionId: apiTransaction.trans_number,
-    orderId: apiTransaction.order_number,
-    invoiceId: apiTransaction.invoice_number,
+    id: transactionPrimaryId,
+    transactionId: apiTransaction.trans_number || "N/A",
+    orderId: apiTransaction.order_number || "N/A",
+    invoiceId: apiTransaction.invoice_number || "N/A",
     paymentMethod: apiTransaction.payment_method || "Credit Card",
     paymentStatus:
       paymentStatus.charAt(0).toUpperCase() + paymentStatus.slice(1),
     orderStatus: order.order_status || "order_placed",
-    totalAmount: totalAmount,
-    paidAmount: paidAmount,
-    customerName: customerName,
-    customerEmail: customerEmail,
-    customerPhone: customerPhone,
-    paymentDate: paymentDate,
+    totalAmount,
+    paidAmount,
+    customerName,
+    customerEmail,
+    customerPhone,
+    paymentDate,
     createdAt: apiTransaction.created_at
       ? new Date(apiTransaction.created_at).toLocaleString()
       : "N/A",
     lastUpdated: apiTransaction.updated_at
       ? new Date(apiTransaction.updated_at).toLocaleString()
       : "N/A",
+    createdAtRaw: apiTransaction.created_at || "",
+    updatedAtRaw: apiTransaction.updated_at || "",
     orderTotal: totalAmount,
     viewUrl: apiTransaction.view_url,
     downloadUrl: apiTransaction.download_url,
-    items: items,
+    items,
   };
 };
 
@@ -252,18 +241,20 @@ export default function Transactions() {
   const [currentPage, setCurrentPage] = useState(1);
   const transactionsPerPage = 15;
 
-  // Calculate stats from transactions
   const calculateStats = useCallback((transactionsData: TransactionType[]) => {
     const total = transactionsData.length;
+
     const revenue = transactionsData
       .filter((item) => {
         const status = item.paymentStatus.toLowerCase();
         return status === "paid" || status === "completed";
       })
       .reduce((sum, item) => sum + item.paidAmount, 0);
+
     const pending = transactionsData
       .filter((item) => item.paymentStatus.toLowerCase() === "pending")
       .reduce((sum, item) => sum + item.totalAmount, 0);
+
     const completed = transactionsData.filter((item) => {
       const status = item.paymentStatus.toLowerCase();
       return status === "paid" || status === "completed";
@@ -288,16 +279,15 @@ export default function Transactions() {
     averageOrderValue: 0,
   });
 
-  // Fetch all transactions
   const fetchTransactions = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get("/transactions");
-      // console.log('Transactions response:', response);
 
-      // Handle the API response based on your actual structure
-      let apiData = [];
+      const response = await api.get("/transactions");
+
+      let apiData: any[] = [];
+
       if (
         response.data?.status === "success" &&
         Array.isArray(response.data.data)
@@ -307,20 +297,27 @@ export default function Transactions() {
         apiData = response.data;
       } else if (response.data?.data && Array.isArray(response.data.data)) {
         apiData = response.data.data;
-      } else {
-        apiData = [];
       }
 
       const mappedTransactions = apiData.map(mapApiTransactionToUI);
 
-      // Log stats for debugging
-      const calculatedStats = calculateStats(mappedTransactions);
+      // Latest transaction first
+      const sortedTransactions = [...mappedTransactions].sort((a, b) => {
+        const timeA = a.createdAtRaw ? new Date(a.createdAtRaw).getTime() : 0;
+        const timeB = b.createdAtRaw ? new Date(b.createdAtRaw).getTime() : 0;
 
-      setTransactions(mappedTransactions);
+        if (timeB !== timeA) return timeB - timeA;
+
+        return (b.id || 0) - (a.id || 0);
+      });
+
+      const calculatedStats = calculateStats(sortedTransactions);
+
+      setTransactions(sortedTransactions);
       setStats(calculatedStats);
       setLastRefreshTime(new Date());
 
-      return mappedTransactions;
+      return sortedTransactions;
     } catch (err: any) {
       console.error("Error fetching transactions:", err);
       setError(err.response?.data?.message || "Failed to fetch transactions");
@@ -331,12 +328,12 @@ export default function Transactions() {
     }
   }, [calculateStats]);
 
-  // Fetch single transaction details
   const fetchTransactionDetails = useCallback(async (id: number) => {
     try {
       const response = await api.get(`/transactions/${id}`);
 
       let apiData = null;
+
       if (response.data?.status === "success" && response.data.data) {
         apiData = response.data.data;
       } else if (response.data) {
@@ -357,7 +354,6 @@ export default function Transactions() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -377,7 +373,6 @@ export default function Transactions() {
   const filteredTransactions = useMemo(() => {
     let filtered = transactions;
 
-    // Apply search filter
     if (search) {
       const q = search.toLowerCase();
       filtered = filtered.filter((transaction) => {
@@ -391,7 +386,6 @@ export default function Transactions() {
       });
     }
 
-    // Apply payment status filter
     if (filterPaymentStatus !== "all") {
       filtered = filtered.filter(
         (transaction) =>
@@ -400,7 +394,6 @@ export default function Transactions() {
       );
     }
 
-    // Apply order status filter
     if (filterOrderStatus !== "all") {
       filtered = filtered.filter(
         (transaction) =>
@@ -444,7 +437,6 @@ export default function Transactions() {
   }, [fetchTransactions]);
 
   const handleViewClick = async (transaction: TransactionType) => {
-    // Fetch detailed transaction data
     await fetchTransactionDetails(transaction.id);
     setIsViewOpen(true);
   };
@@ -463,22 +455,22 @@ export default function Transactions() {
       <div className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
+
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
@@ -486,7 +478,7 @@ export default function Transactions() {
 
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -496,10 +488,10 @@ export default function Transactions() {
 
   if (error && transactions.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-500 mb-2">{error}</p>
+          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <p className="mb-2 text-red-500">{error}</p>
           <Button onClick={handleRefresh} variant="outline">
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
@@ -511,7 +503,6 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
@@ -520,6 +511,7 @@ export default function Transactions() {
           <p className="text-sm text-muted-foreground">
             Manage all payment records, revenue flow, and transaction history.
           </p>
+
           {lastRefreshTime && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
@@ -533,6 +525,7 @@ export default function Transactions() {
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
+
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -548,7 +541,6 @@ export default function Transactions() {
 
       <Separator />
 
-      {/* Stats Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
@@ -560,7 +552,7 @@ export default function Transactions() {
                 {stats.totalTransactions}
               </h3>
               {stats.successRate > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {stats.successRate.toFixed(1)}% success rate
                 </p>
               )}
@@ -583,7 +575,7 @@ export default function Transactions() {
                 })}
               </h3>
               {stats.averageOrderValue > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   Avg. ${stats.averageOrderValue.toFixed(2)} per order
                 </p>
               )}
@@ -606,7 +598,7 @@ export default function Transactions() {
                 })}
               </h3>
               {stats.pendingPayments > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {
                     transactions.filter(
                       (item) => item.paymentStatus.toLowerCase() === "pending",
@@ -630,7 +622,7 @@ export default function Transactions() {
                 {stats.completedTransactions}
               </h3>
               {stats.totalTransactions > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 text-xs text-muted-foreground">
                   {(
                     (stats.completedTransactions / stats.totalTransactions) *
                     100
@@ -646,7 +638,6 @@ export default function Transactions() {
         </Card>
       </div>
 
-      {/* Filters Section */}
       <div className="flex flex-wrap items-end gap-6">
         <div className="flex flex-col gap-2">
           <Label>Search</Label>
@@ -656,7 +647,9 @@ export default function Transactions() {
               placeholder="Search by ID, customer..."
               className="pl-10"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                setSearch(e.target.value)
+              }
             />
           </div>
         </div>
@@ -703,12 +696,12 @@ export default function Transactions() {
         </div>
       </div>
 
-      {/* Main Table Card */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader>
           <CardTitle>Transaction Listing</CardTitle>
           <CardDescription>
-            View all transaction records with payment and order details.
+            View all transaction records with payment and order details. Latest
+            transactions appear first.
           </CardDescription>
         </CardHeader>
 
@@ -717,7 +710,8 @@ export default function Transactions() {
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-center w-16">ID</TableHead>
+                  <TableHead className="w-16 text-center">No.</TableHead>
+                  <TableHead>Transaction ID</TableHead>
                   <TableHead>Order ID</TableHead>
                   <TableHead>Invoice ID</TableHead>
                   <TableHead>Payment Status</TableHead>
@@ -732,17 +726,26 @@ export default function Transactions() {
 
               <TableBody>
                 {paginatedTransactions.length > 0 ? (
-                  paginatedTransactions.map((transaction) => (
+                  paginatedTransactions.map((transaction, index) => (
                     <TableRow key={transaction.id}>
-                      <TableCell className="font-mono text-sm text-center">
-                        {transaction.id}
+                      <TableCell className="font-mono text-center text-sm">
+                        {(currentPage - 1) * transactionsPerPage + index + 1}
                       </TableCell>
+
                       <TableCell>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">
+                        <code className="rounded bg-muted px-2 py-1 text-xs">
+                          {transaction.transactionId}
+                        </code>
+                      </TableCell>
+
+                      <TableCell>
+                        <code className="rounded bg-muted px-2 py-1 text-xs">
                           {transaction.orderId}
                         </code>
                       </TableCell>
+
                       <TableCell>{transaction.invoiceId}</TableCell>
+
                       <TableCell>
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getPaymentStatusClasses(
@@ -752,6 +755,7 @@ export default function Transactions() {
                           {transaction.paymentStatus}
                         </span>
                       </TableCell>
+
                       <TableCell>
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${getOrderStatusClasses(
@@ -761,12 +765,10 @@ export default function Transactions() {
                           {transaction.orderStatus.replace("_", " ")}
                         </span>
                       </TableCell>
-                      <TableCell>
-                        ${transaction.totalAmount.toFixed(2)}
-                      </TableCell>
-                      <TableCell>
-                        ${transaction.paidAmount.toFixed(2)}
-                      </TableCell>
+
+                      <TableCell>${transaction.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell>${transaction.paidAmount.toFixed(2)}</TableCell>
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <User className="h-3 w-3 text-muted-foreground" />
@@ -775,7 +777,9 @@ export default function Transactions() {
                           </span>
                         </div>
                       </TableCell>
+
                       <TableCell>{transaction.paymentDate}</TableCell>
+
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -793,7 +797,7 @@ export default function Transactions() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={10}
+                      colSpan={11}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       <div className="flex flex-col items-center gap-2">
@@ -818,7 +822,6 @@ export default function Transactions() {
             </Table>
           </div>
 
-          {/* Pagination */}
           {filteredTransactions.length > 0 && (
             <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
@@ -853,6 +856,7 @@ export default function Transactions() {
 
                 {Array.from({ length: totalPages }, (_, index) => {
                   const page = index + 1;
+
                   if (
                     totalPages <= 7 ||
                     page === 1 ||
@@ -886,6 +890,7 @@ export default function Transactions() {
                       </span>
                     );
                   }
+
                   return null;
                 })}
 
@@ -904,7 +909,6 @@ export default function Transactions() {
         </CardContent>
       </Card>
 
-      {/* View Transaction Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
@@ -917,63 +921,69 @@ export default function Transactions() {
           {selectedTransaction && (
             <div className="space-y-6">
               <div className="grid gap-4 md:grid-cols-2">
-                {/* Payment Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <CreditCard className="h-4 w-4" />
                     Payment Information
                   </h3>
+
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Transaction ID
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.transactionId}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order ID
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.orderId}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Invoice ID
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.invoiceId}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Method
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.paymentMethod.toUpperCase()}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Total Amount
                       </p>
                       <p className="text-sm font-medium">
                         ${selectedTransaction.totalAmount.toFixed(2)}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Paid Amount
                       </p>
                       <p className="text-sm font-medium">
                         ${selectedTransaction.paidAmount.toFixed(2)}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Status
                       </p>
                       <span
@@ -984,8 +994,9 @@ export default function Transactions() {
                         {selectedTransaction.paymentStatus}
                       </span>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Date
                       </p>
                       <p className="text-sm font-medium">
@@ -995,44 +1006,44 @@ export default function Transactions() {
                   </div>
                 </div>
 
-                {/* Order Items Section */}
                 {selectedTransaction.items &&
                   selectedTransaction.items.length > 0 && (
                     <div className="rounded-lg border bg-card p-6">
-                      <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                      <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                         <ShoppingCart className="h-4 w-4" />
                         Order Items
                       </h3>
+
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
                             <tr className="border-b">
-                              <th className="text-left py-2">Product</th>
-                              <th className="text-center py-2">Quantity</th>
-                              <th className="text-right py-2">Unit Price</th>
-                              <th className="text-right py-2">Subtotal</th>
+                              <th className="py-2 text-left">Product</th>
+                              <th className="py-2 text-center">Quantity</th>
+                              <th className="py-2 text-right">Unit Price</th>
+                              <th className="py-2 text-right">Subtotal</th>
                             </tr>
                           </thead>
                           <tbody>
                             {selectedTransaction.items.map((item) => (
                               <tr key={item.order_item_id} className="border-b">
                                 <td className="py-2">{item.product_name}</td>
-                                <td className="text-center py-2">
+                                <td className="py-2 text-center">
                                   {item.quantity}
                                 </td>
-                                <td className="text-right py-2">
+                                <td className="py-2 text-right">
                                   ${item.order_price.toFixed(2)}
                                 </td>
-                                <td className="text-right py-2">
+                                <td className="py-2 text-right">
                                   ${item.subtotal.toFixed(2)}
                                 </td>
                               </tr>
                             ))}
                             <tr className="font-semibold">
-                              <td colSpan={3} className="text-right py-2">
+                              <td colSpan={3} className="py-2 text-right">
                                 Total:
                               </td>
-                              <td className="text-right py-2">
+                              <td className="py-2 text-right">
                                 ${selectedTransaction.totalAmount.toFixed(2)}
                               </td>
                             </tr>
@@ -1044,15 +1055,15 @@ export default function Transactions() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                {/* Order Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <Package className="h-4 w-4" />
                     Order Information
                   </h3>
+
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order Status
                       </p>
                       <span
@@ -1063,24 +1074,27 @@ export default function Transactions() {
                         {selectedTransaction.orderStatus.replace("_", " ")}
                       </span>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order Total
                       </p>
                       <p className="text-sm font-medium">
                         ${selectedTransaction.orderTotal.toFixed(2)}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Created At
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.createdAt}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Last Updated
                       </p>
                       <p className="text-sm font-medium">
@@ -1090,31 +1104,33 @@ export default function Transactions() {
                   </div>
                 </div>
 
-                {/* Customer Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <User className="h-4 w-4" />
                     Customer Information
                   </h3>
+
                   <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Customer Name
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.customerName}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Email
                       </p>
                       <p className="text-sm font-medium">
                         {selectedTransaction.customerEmail}
                       </p>
                     </div>
+
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Phone
                       </p>
                       <p className="text-sm font-medium">
@@ -1125,14 +1141,14 @@ export default function Transactions() {
                 </div>
               </div>
 
-              {/* Invoice Links */}
               {(selectedTransaction.viewUrl ||
                 selectedTransaction.downloadUrl) && (
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <FileText className="h-4 w-4" />
                     Invoice Links
                   </h3>
+
                   <div className="flex gap-4">
                     {selectedTransaction.viewUrl && (
                       <Button variant="outline" asChild>
@@ -1146,6 +1162,7 @@ export default function Transactions() {
                         </a>
                       </Button>
                     )}
+
                     {selectedTransaction.downloadUrl && (
                       <Button variant="outline" asChild>
                         <a

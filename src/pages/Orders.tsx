@@ -288,9 +288,11 @@ export default function Orders() {
     });
   }, []);
 
-  const filteredOrders = useMemo(() => {
+  // Filter and sort orders (most recent first by order_date or created_at)
+  const sortedAndFilteredOrders = useMemo(() => {
     const q = search.toLowerCase();
-    return orders.filter((order) => {
+    // First filter orders
+    const filtered = orders.filter((order) => {
       return (
         order.o_id.toString().includes(q) ||
         order.order_number.toLowerCase().includes(q) ||
@@ -299,6 +301,14 @@ export default function Orders() {
         order.order_status.toLowerCase().includes(q) ||
         order.payment_status.toLowerCase().includes(q)
       );
+    });
+    
+    // Sort by date (most recent first) - using order_date or created_at as fallback
+    // Create a copy to avoid mutating the original array
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.order_date || a.created_at);
+      const dateB = new Date(b.order_date || b.created_at);
+      return dateB.getTime() - dateA.getTime(); // Descending order (newest first)
     });
   }, [orders, search]);
 
@@ -318,13 +328,18 @@ export default function Orders() {
       return sum + total;
     }, 0);
 
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+  const totalPages = Math.max(1, Math.ceil(sortedAndFilteredOrders.length / ordersPerPage));
 
   const paginatedOrders = useMemo(() => {
     const startIndex = (currentPage - 1) * ordersPerPage;
     const endIndex = startIndex + ordersPerPage;
-    return filteredOrders.slice(startIndex, endIndex);
-  }, [filteredOrders, currentPage]);
+    return sortedAndFilteredOrders.slice(startIndex, endIndex);
+  }, [sortedAndFilteredOrders, currentPage]);
+
+  // Calculate the starting serial number for the current page
+  const getSerialNumber = useCallback((index: number) => {
+    return (currentPage - 1) * ordersPerPage + index + 1;
+  }, [currentPage]);
 
   // Initial fetch
   useEffect(() => {
@@ -343,7 +358,6 @@ export default function Orders() {
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    const oldOrderCount = orders.length;
     await fetchOrders();
     setSearch("");
     setCurrentPage(1);
@@ -351,13 +365,12 @@ export default function Orders() {
     setIsRefreshing(false);
     
     // Show success message after refresh
-    const newOrderCount = orders.length;
     showAlert(
       "success", 
       "Refresh Successful", 
-      `Orders have been refreshed successfully. ${newOrderCount} orders loaded.`
+      `Orders have been refreshed successfully.`
     );
-  }, [fetchOrders, orders.length]);
+  }, [fetchOrders]);
 
   const handleViewClick = (order: OrderType) => {
     navigate(`/admin/orders/${order.o_id}`);
@@ -397,7 +410,7 @@ export default function Orders() {
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading...</p>
+            <p className="mt-4 text-muted-foreground">Loading orders...</p>
           </div>
         </div>
       </div>
@@ -502,7 +515,7 @@ export default function Orders() {
             <div>
               <CardTitle>Order Listing</CardTitle>
               <CardDescription>
-                View and inspect all order records.
+                View and inspect all order records. Most recent orders appear first.
               </CardDescription>
             </div>
 
@@ -522,7 +535,7 @@ export default function Orders() {
               <Table className="custom-table-header">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-20 text-center">ID</TableHead>
+                    <TableHead className="w-20 text-center">No</TableHead>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Customer Name</TableHead>
                     <TableHead>Total Amount</TableHead>
@@ -534,7 +547,7 @@ export default function Orders() {
 
                 <TableBody>
                   {paginatedOrders.length > 0 ? (
-                    paginatedOrders.map((order) => {
+                    paginatedOrders.map((order, index) => {
                       const totalAmount = order.items?.reduce((sum, item) => {
                         return sum + (item.order_price * item.quantity);
                       }, 0) || 0;
@@ -542,7 +555,7 @@ export default function Orders() {
                       return (
                         <TableRow key={order.o_id}>
                           <TableCell className="font-mono text-sm text-center">
-                            {order.o_id}
+                            {getSerialNumber(index)}
                           </TableCell>
                           <TableCell>
                             <p className="font-medium">{order.order_number}</p>
@@ -602,7 +615,7 @@ export default function Orders() {
                           {search && (
                             <Button
                               variant="link"
-                              onClick={handleRefresh}
+                              onClick={() => setSearch("")}
                               className="text-sm"
                             >
                               Clear search
@@ -617,7 +630,7 @@ export default function Orders() {
             </div>
 
             {/* Pagination */}
-            {filteredOrders.length > 0 && (
+            {sortedAndFilteredOrders.length > 0 && (
               <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <p className="text-sm text-muted-foreground">
                   Showing{" "}
@@ -626,9 +639,9 @@ export default function Orders() {
                   </span>{" "}
                   to{" "}
                   <span className="font-medium">
-                    {Math.min(currentPage * ordersPerPage, filteredOrders.length)}
+                    {Math.min(currentPage * ordersPerPage, sortedAndFilteredOrders.length)}
                   </span>{" "}
-                  of <span className="font-medium">{filteredOrders.length}</span> orders
+                  of <span className="font-medium">{sortedAndFilteredOrders.length}</span> orders
                 </p>
 
                 <div className="flex items-center gap-2">

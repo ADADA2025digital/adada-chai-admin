@@ -52,11 +52,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"; // Import Alert components
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// Contact Message Interface - Updated to match API response
+// Contact Message Interface
 interface ContactMessage {
-  contact_id: number; // Changed from 'id' to 'contact_id'
+  contact_id: number;
   sender_name: string;
   sender_email: string;
   sender_ph_no: string | null;
@@ -71,7 +71,6 @@ type LoadingState = {
   deleting: boolean;
 };
 
-// Alert interface
 interface AlertState {
   show: boolean;
   type: "success" | "error";
@@ -88,8 +87,7 @@ export default function ContactEnquiries() {
     deleting: false,
   });
   const [error, setError] = useState<string | null>(null);
-  
-  // Add alert state
+
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -109,66 +107,71 @@ export default function ContactEnquiries() {
   const [currentPage, setCurrentPage] = useState(1);
   const messagesPerPage = 15;
 
-  // Show alert function with auto-dismiss
-  const showAlert = useCallback((type: "success" | "error", message: string) => {
-    setAlert({ show: true, type, message });
-    setTimeout(() => {
-      setAlert({ show: false, type: "success", message: "" });
-    }, 5000);
-  }, []);
+  const showAlert = useCallback(
+    (type: "success" | "error", message: string) => {
+      setAlert({ show: true, type, message });
 
-  // Fetch all contact messages from API
-  const fetchMessages = useCallback(async (showLoading = true, showSuccessAlert = false) => {
-    try {
-      if (showLoading) {
-        setLoading((prev) => ({ ...prev, fetching: true }));
-      }
-      setError(null);
+      setTimeout(() => {
+        setAlert({ show: false, type: "success", message: "" });
+      }, 5000);
+    },
+    [],
+  );
 
-      const response = await api.get("/contacts");
-
-      if (
-        response.data.status === "success" &&
-        Array.isArray(response.data.data)
-      ) {
-        setMessages(response.data.data);
-        setLastRefreshTime(new Date());
-        
-        // Show success alert if requested (for refresh operations)
-        if (showSuccessAlert) {
-          showAlert("success", "Messages refreshed successfully!");
+  const fetchMessages = useCallback(
+    async (showLoading = true, showSuccessAlert = false) => {
+      try {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, fetching: true }));
         }
-      } else {
-        console.error("❌ Invalid response format:", response.data);
-        throw new Error("Invalid response format from server");
-      }
-    } catch (err: any) {
-      console.error("❌ Error fetching messages:", {
-        message: err.message,
-        status: err.response?.status,
-        data: err.response?.data,
-      });
-      const errorMessage = err.response?.data?.message ||
+
+        setError(null);
+
+        const response = await api.get("/contacts");
+
+        if (
+          response.data.status === "success" &&
+          Array.isArray(response.data.data)
+        ) {
+          setMessages(response.data.data);
+          setLastRefreshTime(new Date());
+
+          if (showSuccessAlert) {
+            showAlert("success", "Messages refreshed successfully!");
+          }
+        } else {
+          console.error("Invalid response format:", response.data);
+          throw new Error("Invalid response format from server");
+        }
+      } catch (err: any) {
+        console.error("Error fetching messages:", {
+          message: err.message,
+          status: err.response?.status,
+          data: err.response?.data,
+        });
+
+        const errorMessage =
+          err.response?.data?.message ||
           err.message ||
           "Failed to fetch contact messages";
-      
-      setError(errorMessage);
-      
-      // Show error alert if this is a refresh operation
-      if (showSuccessAlert) {
-        showAlert("error", errorMessage);
-      }
-    } finally {
-      if (showLoading) {
-        setLoading((prev) => ({ ...prev, fetching: false }));
-      }
-    }
-  }, [showAlert]);
 
-  // Delete a contact message
+        setError(errorMessage);
+
+        if (showSuccessAlert) {
+          showAlert("error", errorMessage);
+        }
+      } finally {
+        if (showLoading) {
+          setLoading((prev) => ({ ...prev, fetching: false }));
+        }
+      }
+    },
+    [showAlert],
+  );
+
   const handleDeleteMessage = useCallback(async () => {
     if (!deleteMessageId) {
-      console.error("❌ No message ID to delete");
+      console.error("No message ID to delete");
       return;
     }
 
@@ -178,22 +181,20 @@ export default function ContactEnquiries() {
       const response = await api.delete(`/contacts/${deleteMessageId}`);
 
       if (response.data.status === "success") {
-        
-        // Show success alert
         showAlert("success", "Message deleted successfully!");
-        
-        // Remove from local state - using contact_id to filter
+
         setMessages((prev) =>
           prev.filter((msg) => msg.contact_id !== deleteMessageId),
         );
+
         setIsDeleteOpen(false);
         setDeleteMessageId(null);
         setDeleteMessagePreview(null);
 
-        // Refresh if current page becomes empty
         const remainingMessages = messages.filter(
           (msg) => msg.contact_id !== deleteMessageId,
         );
+
         if (remainingMessages.length === 0 && currentPage > 1) {
           setCurrentPage((prev) => prev - 1);
         }
@@ -201,13 +202,13 @@ export default function ContactEnquiries() {
         throw new Error("Failed to delete message");
       }
     } catch (err: any) {
-      console.error("❌ Error deleting message:", err);
+      console.error("Error deleting message:", err);
+
       const errorMessage =
         err.response?.data?.message ||
         err.message ||
         "Failed to delete message";
-      
-      // Show error alert
+
       showAlert("error", errorMessage);
       setError(errorMessage);
     } finally {
@@ -215,9 +216,8 @@ export default function ContactEnquiries() {
     }
   }, [deleteMessageId, messages, currentPage, showAlert]);
 
-  // Initial load
   useEffect(() => {
-    fetchMessages(true, false); // Don't show alert on initial load
+    fetchMessages(true, false);
   }, [fetchMessages]);
 
   const formatDateTime = useCallback((date: Date): string => {
@@ -239,31 +239,35 @@ export default function ContactEnquiries() {
     [formatDateTime],
   );
 
-  // Filter messages based on search - using contact_id
   const filteredMessages = useMemo(() => {
     const q = search.toLowerCase().trim();
 
-    if (!q) return messages;
+    let filtered = messages;
 
-    const filtered = messages.filter((message) => {
-      return (
-        message.contact_id.toString().includes(q) ||
-        message.sender_name.toLowerCase().includes(q) ||
-        message.sender_email.toLowerCase().includes(q) ||
-        (message.sender_ph_no && message.sender_ph_no.includes(q)) ||
-        message.sender_message.toLowerCase().includes(q)
-      );
-    });
+    if (q) {
+      filtered = messages.filter((message) => {
+        return (
+          message.contact_id.toString().includes(q) ||
+          message.sender_name.toLowerCase().includes(q) ||
+          message.sender_email.toLowerCase().includes(q) ||
+          (message.sender_ph_no && message.sender_ph_no.includes(q)) ||
+          message.sender_message.toLowerCase().includes(q)
+        );
+      });
+    }
 
-    return filtered;
+    return [...filtered].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   }, [messages, search]);
 
   const totalMessages = messages.length;
 
-  // Get message statistics
   const recentMessages = useMemo(() => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
     return messages.filter((msg) => new Date(msg.created_at) >= oneWeekAgo)
       .length;
   }, [messages]);
@@ -291,7 +295,7 @@ export default function ContactEnquiries() {
 
   const handleRefresh = useCallback(async () => {
     setLoading((prev) => ({ ...prev, refreshing: true }));
-    await fetchMessages(false, true); // Show success/error alert on refresh
+    await fetchMessages(false, true);
     setSearch("");
     setCurrentPage(1);
     setLoading((prev) => ({ ...prev, refreshing: false }));
@@ -303,9 +307,8 @@ export default function ContactEnquiries() {
   };
 
   const handleDeleteClick = (message: ContactMessage) => {
-    // Verify the message has a valid ID
     if (!message.contact_id) {
-      console.error("❌ Message ID is missing or invalid:", message);
+      console.error("Message ID is missing or invalid:", message);
       setError("Cannot delete message: Invalid message ID");
       return;
     }
@@ -329,22 +332,22 @@ export default function ContactEnquiries() {
       <div className="space-y-6 p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
+
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
@@ -352,7 +355,7 @@ export default function ContactEnquiries() {
 
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -362,9 +365,8 @@ export default function ContactEnquiries() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Alert Notification */}
       {alert.show && (
-        <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-[9999] w-full max-w-sm duration-300">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -390,6 +392,7 @@ export default function ContactEnquiries() {
           <p className="text-sm text-muted-foreground">
             Manage and respond to customer contact messages and inquiries.
           </p>
+
           {lastRefreshTime && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
@@ -397,6 +400,7 @@ export default function ContactEnquiries() {
             </div>
           )}
         </div>
+
         <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
@@ -417,7 +421,7 @@ export default function ContactEnquiries() {
       <Separator />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             <span className="text-sm">{error}</span>
@@ -433,7 +437,6 @@ export default function ContactEnquiries() {
         </div>
       )}
 
-      {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
@@ -446,6 +449,7 @@ export default function ContactEnquiries() {
             </div>
           </CardContent>
         </Card>
+
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
             <div>
@@ -457,6 +461,7 @@ export default function ContactEnquiries() {
             </div>
           </CardContent>
         </Card>
+
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
             <div>
@@ -472,7 +477,6 @@ export default function ContactEnquiries() {
         </Card>
       </div>
 
-      {/* Messages Table */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -481,6 +485,7 @@ export default function ContactEnquiries() {
               View and manage all customer inquiries.
             </CardDescription>
           </div>
+
           <div className="relative w-full md:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -491,12 +496,13 @@ export default function ContactEnquiries() {
             />
           </div>
         </CardHeader>
+
         <CardContent>
           <div className="overflow-x-auto rounded-xl border">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-20 text-center">ID</TableHead>
+                  <TableHead className="w-20 text-center">No</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
@@ -505,27 +511,29 @@ export default function ContactEnquiries() {
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {paginatedMessages.length > 0 ? (
-                  paginatedMessages.map((message) => (
+                  paginatedMessages.map((message, index) => (
                     <TableRow key={message.contact_id} className="group">
-                      <TableCell className="font-mono text-sm text-center">
-                        {message.contact_id}
+                      <TableCell className="text-center font-mono text-sm">
+                        {(currentPage - 1) * messagesPerPage + index + 1}
                       </TableCell>
+
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span>{message.sender_name}</span>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Mail className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">
-                            {message.sender_email}
-                          </span>
+                          <span className="text-sm">{message.sender_email}</span>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         {message.sender_ph_no ? (
                           <div className="flex items-center gap-2">
@@ -540,19 +548,22 @@ export default function ContactEnquiries() {
                           </span>
                         )}
                       </TableCell>
+
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm truncate max-w-[200px]">
+                          <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground" />
+                          <span className="max-w-[200px] truncate text-sm">
                             {message.sender_message.length > 50
                               ? `${message.sender_message.substring(0, 50)}...`
                               : message.sender_message}
                           </span>
                         </div>
                       </TableCell>
+
                       <TableCell className="text-sm">
                         {formatMessageDate(message.created_at)}
                       </TableCell>
+
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -563,12 +574,13 @@ export default function ContactEnquiries() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+
                           <Button
                             variant="outline"
                             size="icon"
                             onClick={() => handleDeleteClick(message)}
                             title="Delete Message"
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -616,10 +628,10 @@ export default function ContactEnquiries() {
                     filteredMessages.length,
                   )}
                 </span>{" "}
-                of{" "}
-                <span className="font-medium">{filteredMessages.length}</span>{" "}
+                of <span className="font-medium">{filteredMessages.length}</span>{" "}
                 messages
               </p>
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -630,13 +642,17 @@ export default function ContactEnquiries() {
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
                 </Button>
+
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                   let page = index + 1;
+
                   if (totalPages > 5 && currentPage > 3) {
                     page = currentPage - 2 + index;
                     if (page > totalPages) return null;
                   }
+
                   if (page > totalPages) return null;
+
                   return (
                     <Button
                       key={page}
@@ -649,6 +665,7 @@ export default function ContactEnquiries() {
                     </Button>
                   );
                 })}
+
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2">...</span>
@@ -662,6 +679,7 @@ export default function ContactEnquiries() {
                     </Button>
                   </>
                 )}
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -677,7 +695,6 @@ export default function ContactEnquiries() {
         </CardContent>
       </Card>
 
-      {/* View Message Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
@@ -689,47 +706,50 @@ export default function ContactEnquiries() {
 
           {viewMessage && (
             <div className="space-y-6">
-              {/* Sender Information Section */}
               <div className="rounded-lg border bg-card p-6">
-                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                   <User className="h-4 w-4" />
                   Sender Information
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+
+                <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Name
                     </p>
-                    <p className="text-sm font-medium flex items-center gap-2">
+                    <p className="flex items-center gap-2 text-sm font-medium">
                       <User className="h-4 w-4 text-muted-foreground" />
                       {viewMessage.sender_name}
                     </p>
                   </div>
+
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Email
                     </p>
-                    <p className="text-sm font-medium flex items-center gap-2 break-all">
-                      <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <p className="flex items-center gap-2 break-all text-sm font-medium">
+                      <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
                       {viewMessage.sender_email}
                     </p>
                   </div>
+
                   {viewMessage.sender_ph_no && (
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Phone Number
                       </p>
-                      <p className="text-sm font-medium flex items-center gap-2">
+                      <p className="flex items-center gap-2 text-sm font-medium">
                         <Phone className="h-4 w-4 text-muted-foreground" />
                         {viewMessage.sender_ph_no}
                       </p>
                     </div>
                   )}
+
                   <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Received Date
                     </p>
-                    <p className="text-sm font-medium flex items-center gap-2">
+                    <p className="flex items-center gap-2 text-sm font-medium">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       {formatMessageDate(viewMessage.created_at)}
                     </p>
@@ -737,14 +757,14 @@ export default function ContactEnquiries() {
                 </div>
               </div>
 
-              {/* Message Content Section */}
               <div className="rounded-lg border bg-card p-6">
-                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                   <MessageSquare className="h-4 w-4" />
                   Message Content
                 </h3>
-                <div className="bg-muted/30 rounded-lg p-4">
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+
+                <div className="rounded-lg bg-muted/30 p-4">
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {viewMessage.sender_message}
                   </p>
                 </div>
@@ -754,7 +774,6 @@ export default function ContactEnquiries() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal - FIXED */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -764,6 +783,7 @@ export default function ContactEnquiries() {
               </div>
               <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
             </div>
+
             <DialogDescription className="pt-4">
               Are you sure you want to delete this message? This action cannot
               be undone.
@@ -771,8 +791,8 @@ export default function ContactEnquiries() {
           </DialogHeader>
 
           <DialogFooter className="gap-2 sm:gap-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setIsDeleteOpen(false);
                 setDeleteMessageId(null);
@@ -782,6 +802,7 @@ export default function ContactEnquiries() {
             >
               Cancel
             </Button>
+
             <Button
               variant="destructive"
               onClick={handleDeleteMessage}
