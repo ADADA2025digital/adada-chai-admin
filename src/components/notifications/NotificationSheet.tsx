@@ -340,12 +340,12 @@ export function NotificationToggle() {
 
     // Handle network changes
     const handleOnline = () => {
-      console.log("Connection restored, restarting polling");
+      // console.log("Connection restored, restarting polling");
       startPolling();
     };
 
     const handleOffline = () => {
-      console.log("Connection lost, pausing polling");
+      // console.log("Connection lost, pausing polling");
       stopPolling();
     };
 
@@ -382,7 +382,7 @@ export function NotificationToggle() {
   const playNotificationSound = () => {
     // Use ref to get current mute state
     if (mutedRef.current) {
-      console.log("🔇 Notifications muted, sound disabled");
+      // console.log("Notifications muted, sound disabled");
       return;
     }
     
@@ -390,9 +390,9 @@ export function NotificationToggle() {
       if (soundRef.current) {
         soundRef.current.currentTime = 0;
         soundRef.current.play().catch((e) => {
-          console.log("Audio play error:", e);
+          // console.log("Audio play error:", e);
         });
-        console.log("🔔 Playing notification sound");
+        // console.log("Playing notification sound");
       }
     } catch (error) {
       console.error("Error playing notification sound:", error);
@@ -402,7 +402,7 @@ export function NotificationToggle() {
   const showBrowserNotification = (notification: Notification) => {
     // Use ref to get current mute state
     if (mutedRef.current) {
-      console.log("🔇 Notifications muted, browser notification disabled");
+      // console.log("Notifications muted, browser notification disabled");
       return;
     }
     
@@ -426,7 +426,7 @@ export function NotificationToggle() {
         };
 
         setTimeout(() => browserNotif.close(), 5000);
-        console.log("🔔 Showing browser notification");
+        // console.log("Showing browser notification");
       } catch (error) {
         console.error("Error showing browser notification:", error);
       }
@@ -462,7 +462,7 @@ export function NotificationToggle() {
 
     // Only play sound and show browser notification if not muted
     if (newUnreadNotifs.length > 0 && !mutedRef.current) {
-      console.log(`🔔 ${newUnreadNotifs.length} new unread notifications detected`);
+      // console.log(`${newUnreadNotifs.length} new unread notifications detected`);
       playNotificationSound();
       
       const latestNotification = newUnreadNotifs[0];
@@ -479,7 +479,7 @@ export function NotificationToggle() {
         }, 1000);
       }
     } else if (newUnreadNotifs.length > 0 && mutedRef.current) {
-      console.log(`🔇 ${newUnreadNotifs.length} new notifications received but muted`);
+      // console.log(`${newUnreadNotifs.length} new notifications received but muted`);
     }
 
     // Update previous notifications reference
@@ -631,12 +631,12 @@ export function NotificationToggle() {
   const handleToggleNotifications = () => {
     setNotificationsMuted((prev) => {
       const newState = !prev;
-      console.log(`🔔 Notifications ${newState ? "🔇 MUTED" : "🔊 UNMUTED"}`);
+      // console.log(`Notifications ${newState ? "🔇 MUTED" : "🔊 UNMUTED"}`);
       
       if (newState) {
-        console.log("🔇 Notifications muted - click bell icon to unmute");
+        // console.log("Notifications muted - click bell icon to unmute");
       } else {
-        console.log("🔊 Notifications unmuted - click bell icon to mute");
+        // console.log("Notifications unmuted - click bell icon to mute");
       }
       
       return newState;

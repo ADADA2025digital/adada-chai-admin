@@ -9,7 +9,6 @@ import api from "@/config/axiosConfig";
 import {
   AlertTriangle,
   ArrowLeft,
-  Package,
   Star,
   FileText,
   Boxes,
@@ -31,6 +30,8 @@ import {
   Video,
   File,
   Trash2,
+  Ruler,
+  Weight,
 } from "lucide-react";
 import {
   Dialog,
@@ -53,9 +54,141 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// ... (keep all your existing interface definitions)
+// Types
+type Category = {
+  c_id: number;
+  category_name: string;
+  category_description: string;
+};
 
-// Updated ProductFormFieldsProps with CKEditor handlers
+type ProductAsset = {
+  asset_id: number;
+  asset_type: string;
+  asset_url: string;
+  is_primary: boolean;
+};
+
+type ProductSEO = {
+  product_meta_title?: string;
+  meta_keywords?: string;
+  meta_description?: string;
+  meta_robots?: string;
+};
+
+type ProductDimension = {
+  pd_id?: number;
+  product_id?: number;
+  height?: number; // cm
+  weight?: number; // kg
+  length?: number; // cm
+  width?: number; // cm
+  created_at?: string;
+  updated_at?: string;
+};
+
+type Discount = {
+  discount_id: number;
+  discount_name: string;
+  discount_percentage: string;
+  start_date: string;
+  end_date: string;
+  price?: number;
+  percentage?: number;
+};
+
+type CategoryRelation = {
+  c_id: number;
+  category_name: string;
+  category_description: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+type Product = {
+  product_id: number;
+  product_name: string;
+  c_id: number;
+  sku: string;
+  supplier_sku?: string | null;
+  buy_price: number;
+  sell_price: number;
+  discount_id?: number;
+  discount?: Discount;
+  quantity: number;
+  specification: string;
+  description?: string;
+  seo: ProductSEO;
+  assets: ProductAsset[];
+  product_status?: string;
+  featured: boolean | number;
+  created_at?: string;
+  updated_at?: string;
+  category?: CategoryRelation;
+  dimensions?: ProductDimension;
+};
+
+type AssetItem = {
+  id: string;
+  file: File | null;
+  preview: string;
+  type: string;
+  isExisting?: boolean;
+  existingId?: number;
+  existingUrl?: string;
+};
+
+type FormDataType = {
+  product_name: string;
+  c_id: string;
+  sku: string;
+  supplier_sku: string;
+  buy_price: string;
+  sell_price: string;
+  quantity: string;
+  description: string;
+  specification: string;
+  assets: AssetItem[];
+  product_meta_title: string;
+  meta_keywords: string;
+  meta_description: string;
+  meta_robots: string;
+  product_status: string;
+  featured: boolean;
+  weight: string;
+  height: string;
+  length: string;
+  width: string;
+};
+
+type ValidationErrors = {
+  product_name?: string[];
+  c_id?: string[];
+  sku?: string[];
+  supplier_sku?: string[];
+  buy_price?: string[];
+  sell_price?: string[];
+  quantity?: string[];
+  description?: string[];
+  specification?: string[];
+  product_meta_title?: string[];
+  meta_keywords?: string[];
+  meta_description?: string[];
+  product_status?: string[];
+  assets?: string[];
+  weight?: string[];
+  height?: string[];
+  length?: string[];
+  width?: string[];
+  [key: string]: string[] | undefined;
+};
+
+type AlertState = {
+  show: boolean;
+  type: "success" | "error";
+  message: string;
+};
+
+// Product Form Fields Component
 interface ProductFormFieldsProps {
   formData: FormDataType;
   categories: Category[];
@@ -78,7 +211,6 @@ interface ProductFormFieldsProps {
   handleSpecificationChange?: (data: string) => void;
 }
 
-// Updated ProductFormFields with CKEditor
 function ProductFormFields({
   formData,
   categories,
@@ -97,7 +229,6 @@ function ProductFormFields({
   const manualFileInputRef = React.useRef<HTMLInputElement>(null);
   const assets = formData.assets || [];
 
-  // CKEditor configuration
   const editorConfiguration = {
     toolbar: [
       "heading",
@@ -146,13 +277,9 @@ function ProductFormFields({
   };
 
   const getAssetTypeFromFile = (file: File): string => {
-    if (file.type.startsWith("image/")) {
-      return "image";
-    } else if (file.type.startsWith("video/")) {
-      return "video";
-    } else {
-      return "document";
-    }
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    return "document";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -170,9 +297,7 @@ function ProductFormFields({
   const handleFiles = (files: File[]) => {
     files.forEach((file) => {
       if (file.size > 20 * 1024 * 1024) {
-        if (showNotification) {
-          showNotification("error", "File size must be less than 20MB");
-        }
+        showNotification?.("error", "File size must be less than 20MB");
         return;
       }
 
@@ -186,13 +311,12 @@ function ProductFormFields({
         "application/msword",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       ];
+
       if (!validTypes.includes(file.type)) {
-        if (showNotification) {
-          showNotification(
-            "error",
-            "File type not supported. Please upload JPG, PNG, WEBP, MP4, PDF, or DOCX files.",
-          );
-        }
+        showNotification?.(
+          "error",
+          "File type not supported. Please upload JPG, PNG, WEBP, MP4, PDF, or DOCX files.",
+        );
         return;
       }
 
@@ -206,7 +330,7 @@ function ProductFormFields({
             assets: [
               ...prev.assets,
               {
-                id: Math.random().toString(36).substr(2, 9),
+                id: Math.random().toString(36).slice(2, 11),
                 file,
                 preview: reader.result as string,
                 type: assetType,
@@ -222,7 +346,7 @@ function ProductFormFields({
           assets: [
             ...prev.assets,
             {
-              id: Math.random().toString(36).substr(2, 9),
+              id: Math.random().toString(36).slice(2, 11),
               file,
               preview: "",
               type: assetType,
@@ -236,18 +360,15 @@ function ProductFormFields({
 
   const handleManualFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
+    if (files.length > 0) handleFiles(files);
+
     if (manualFileInputRef.current) {
       manualFileInputRef.current.value = "";
     }
   };
 
   const handleAddFileManually = () => {
-    if (manualFileInputRef.current) {
-      manualFileInputRef.current.click();
-    }
+    manualFileInputRef.current?.click();
   };
 
   return (
@@ -349,6 +470,141 @@ function ProductFormFields({
           </div>
         </div>
 
+        {/* Dimensions Section */}
+        <div className="grid gap-4 md:grid-cols-4 pt-2">
+          <div className="grid gap-2">
+            <Label htmlFor="weight">
+              Weight <span className="text-xs text-muted-foreground">(kg)</span>
+            </Label>
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.weight ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Weight className="h-4 w-4" />
+              </span>
+              <input
+                id="weight"
+                name="weight"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.weight}
+                onChange={handleInputChange}
+                placeholder="Enter weight in kg"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+            {validationErrors.weight && (
+              <p className="text-sm text-destructive">
+                {validationErrors.weight[0]}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="height">
+              Height <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.height ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="height"
+                name="height"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.height}
+                onChange={handleInputChange}
+                placeholder="Enter height in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+            {validationErrors.height && (
+              <p className="text-sm text-destructive">
+                {validationErrors.height[0]}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="length">
+              Length <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.length ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="length"
+                name="length"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.length}
+                onChange={handleInputChange}
+                placeholder="Enter length in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+            {validationErrors.length && (
+              <p className="text-sm text-destructive">
+                {validationErrors.length[0]}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="width">
+              Width <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.width ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="width"
+                name="width"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.width}
+                onChange={handleInputChange}
+                placeholder="Enter width in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+            {validationErrors.width && (
+              <p className="text-sm text-destructive">
+                {validationErrors.width[0]}
+              </p>
+            )}
+          </div>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="buy_price">Buy Price *</Label>
@@ -364,10 +620,19 @@ function ProductFormFields({
                 value={formData.buy_price}
                 onChange={handleInputChange}
                 placeholder="Enter buy price"
-                className="pl-7"
+                className={
+                  validationErrors.buy_price
+                    ? "border-destructive pl-7"
+                    : "pl-7"
+                }
                 disabled={isSubmitting}
               />
             </div>
+            {validationErrors.buy_price && (
+              <p className="text-sm text-destructive">
+                {validationErrors.buy_price[0]}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
@@ -438,6 +703,11 @@ function ProductFormFields({
                 <SelectItem value="Draft">Draft</SelectItem>
               </SelectContent>
             </Select>
+            {validationErrors.product_status && (
+              <p className="text-sm text-destructive">
+                {validationErrors.product_status[0]}
+              </p>
+            )}
           </div>
         </div>
 
@@ -447,7 +717,7 @@ function ProductFormFields({
             <Label htmlFor="description">Description *</Label>
             <div
               className={cn(
-                "border rounded-md overflow-hidden ck-editor-custom",
+                "ck-editor-custom overflow-hidden rounded-md border",
                 validationErrors.description
                   ? "border-destructive"
                   : "border-input",
@@ -457,7 +727,7 @@ function ProductFormFields({
                 editor={ClassicEditor}
                 config={editorConfiguration}
                 data={formData.description}
-                onChange={(event, editor) => {
+                onChange={(_, editor) => {
                   const data = editor.getData();
                   if (handleDescriptionChange) {
                     handleDescriptionChange(data);
@@ -479,7 +749,7 @@ function ProductFormFields({
             <Label htmlFor="specification">Specifications *</Label>
             <div
               className={cn(
-                "border rounded-md overflow-hidden ck-editor-custom",
+                "ck-editor-custom overflow-hidden rounded-md border",
                 validationErrors.specification
                   ? "border-destructive"
                   : "border-input",
@@ -489,7 +759,7 @@ function ProductFormFields({
                 editor={ClassicEditor}
                 config={editorConfiguration}
                 data={formData.specification}
-                onChange={(event, editor) => {
+                onChange={(_, editor) => {
                   const data = editor.getData();
                   if (handleSpecificationChange) {
                     handleSpecificationChange(data);
@@ -523,31 +793,31 @@ function ProductFormFields({
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               className={cn(
-                "flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 min-h-[200px] transition-colors",
+                "flex min-h-[200px] flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 p-6 transition-colors",
                 !isSubmitting &&
-                  "hover:border-primary/50 hover:bg-muted/30 cursor-pointer",
+                  "cursor-pointer hover:border-primary/50 hover:bg-muted/30",
               )}
               onClick={() => {
-                if (!isSubmitting && manualFileInputRef.current) {
-                  manualFileInputRef.current.click();
+                if (!isSubmitting) {
+                  manualFileInputRef.current?.click();
                 }
               }}
             >
-              <Upload className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-center">
+              <Upload className="mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-center text-sm font-medium">
                 Drag & drop files here
               </p>
-              <p className="text-xs text-muted-foreground text-center mt-1">
+              <p className="mt-1 text-center text-xs text-muted-foreground">
                 or click to browse
               </p>
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="mt-2 text-center text-xs text-muted-foreground">
                 Maximum file size: 20MB
               </p>
             </div>
           </div>
 
           <div className="md:col-span-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               <Label className="text-sm font-medium">Uploaded Assets</Label>
               <Button
                 type="button"
@@ -561,14 +831,14 @@ function ProductFormFields({
               </Button>
             </div>
 
-            <div className="space-y-3 h-[200px] overflow-y-auto pr-2">
+            <div className="h-[200px] space-y-3 overflow-y-auto pr-2">
               {assets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center border rounded-lg p-8 text-center bg-muted/10">
-                  <File className="h-8 w-8 text-muted-foreground mb-2" />
+                <div className="flex flex-col items-center justify-center rounded-lg border bg-muted/10 p-8 text-center">
+                  <File className="mb-2 h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
                     No assets uploaded yet
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Drag and drop files or click "Add File" to get started
                   </p>
                 </div>
@@ -576,13 +846,13 @@ function ProductFormFields({
                 assets.map((asset, index) => (
                   <div
                     key={asset.id}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-muted/5 transition-colors"
+                    className="flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="flex-shrink-0">
                         {asset.type === "image" ? (
                           asset.preview || asset.existingUrl ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden border bg-muted">
+                            <div className="h-10 w-10 overflow-hidden rounded-md border bg-muted">
                               <img
                                 src={asset.preview || asset.existingUrl}
                                 alt=""
@@ -590,33 +860,33 @@ function ProductFormFields({
                               />
                             </div>
                           ) : (
-                            <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                               <ImageIcon className="h-5 w-5 text-muted-foreground" />
                             </div>
                           )
                         ) : asset.type === "video" ? (
-                          <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                             <Video className="h-5 w-5 text-muted-foreground" />
                           </div>
                         ) : (
-                          <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                             <File className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
                           {asset.file?.name ||
                             asset.existingUrl?.split("/").pop() ||
                             `${asset.type} asset`}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground capitalize">
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className="text-xs capitalize text-muted-foreground">
                             {asset.type}
                           </span>
                           {asset.isExisting && !asset.file && (
-                            <span className="text-xs text-green-600 flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-xs text-green-600">
                               <CheckCircle className="h-3 w-3" />
                               Existing
                             </span>
@@ -634,7 +904,7 @@ function ProductFormFields({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 ml-2 flex-shrink-0 hover:text-destructive"
+                      className="ml-2 h-8 w-8 flex-shrink-0 hover:text-destructive"
                       onClick={() =>
                         handleRemoveAsset(
                           index,
@@ -650,6 +920,11 @@ function ProductFormFields({
                 ))
               )}
             </div>
+            {validationErrors.assets && (
+              <p className="mt-2 text-sm text-destructive">
+                {validationErrors.assets[0]}
+              </p>
+            )}
           </div>
         </div>
       </div>
@@ -723,6 +998,7 @@ export default function ProductView() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
     {},
   );
+
   const [formData, setFormData] = useState<FormDataType>({
     product_name: "",
     c_id: "",
@@ -740,13 +1016,16 @@ export default function ProductView() {
     meta_robots: "index, follow",
     product_status: "Active",
     featured: false,
+    weight: "",
+    height: "",
+    length: "",
+    width: "",
   });
 
-  // Helper functions (keep all your existing helper functions)
   const parseNumber = (value: number | string | undefined): number => {
-    if (value === undefined || value === null) return 0;
+    if (value === undefined || value === null || value === "") return 0;
     const num = typeof value === "string" ? parseFloat(value) : value;
-    return isNaN(num) ? 0 : num;
+    return Number.isNaN(num) ? 0 : num;
   };
 
   const parseBoolean = (
@@ -774,12 +1053,14 @@ export default function ProductView() {
       | "meta_description"
       | "meta_robots",
   ): string | undefined => {
-    if (product && product[field]) {
-      return product[field];
-    }
-    if (product?.seo && product.seo[field]) {
-      return product.seo[field];
-    }
+    if (!product) return undefined;
+
+    const directValue = (
+      product as unknown as Record<string, string | undefined>
+    )[field];
+    if (directValue) return directValue;
+
+    if (product.seo?.[field]) return product.seo[field];
     return undefined;
   };
 
@@ -789,7 +1070,7 @@ export default function ProductView() {
       if (response.data.status === "success") {
         setCategories(response.data.data);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error fetching categories:", err);
     }
   };
@@ -803,10 +1084,10 @@ export default function ProductView() {
 
       if (response.data.status === "success") {
         setProduct(response.data.data);
-        showAlert("success", "Product data refreshed successfully!");
       } else {
-        setError(response.data.message || "Product not found");
-        showAlert("error", response.data.message || "Product not found");
+        const message = response.data.message || "Product not found";
+        setError(message);
+        showAlert("error", message);
       }
     } catch (err: any) {
       if (err.response?.status === 404) {
@@ -824,21 +1105,21 @@ export default function ProductView() {
   };
 
   useEffect(() => {
-    if (id) {
-      fetchProduct();
-      fetchCategories();
-    } else {
+    if (!id) {
       setError("No product ID provided");
       setLoading(false);
+      return;
     }
+
+    fetchProduct();
+    fetchCategories();
   }, [id]);
 
-  // Updated handleEditClick to properly load CKEditor content
   const handleEditClick = () => {
     if (!product) return;
 
     const existingAssets: AssetItem[] = (product.assets || []).map((asset) => ({
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).slice(2, 11),
       file: null,
       preview: "",
       type: asset.asset_type,
@@ -848,13 +1129,13 @@ export default function ProductView() {
     }));
 
     setFormData({
-      product_name: product.product_name,
-      c_id: String(product.c_id),
-      sku: product.sku,
+      product_name: product.product_name || "",
+      c_id: String(product.c_id || ""),
+      sku: product.sku || "",
       supplier_sku: product.supplier_sku || "",
-      buy_price: String(product.buy_price),
-      sell_price: String(product.sell_price),
-      quantity: String(product.quantity),
+      buy_price: String(product.buy_price ?? ""),
+      sell_price: String(product.sell_price ?? ""),
+      quantity: String(product.quantity ?? ""),
       description: product.description || "",
       specification: product.specification || "",
       assets: existingAssets,
@@ -864,11 +1145,32 @@ export default function ProductView() {
       meta_robots: product.seo?.meta_robots || "index, follow",
       product_status: product.product_status || "Active",
       featured: parseBoolean(product.featured),
+      weight:
+        product.dimensions?.weight !== undefined &&
+        product.dimensions?.weight !== null
+          ? String(product.dimensions.weight)
+          : "",
+      height:
+        product.dimensions?.height !== undefined &&
+        product.dimensions?.height !== null
+          ? String(product.dimensions.height)
+          : "",
+      length:
+        product.dimensions?.length !== undefined &&
+        product.dimensions?.length !== null
+          ? String(product.dimensions.length)
+          : "",
+      width:
+        product.dimensions?.width !== undefined &&
+        product.dimensions?.width !== null
+          ? String(product.dimensions.width)
+          : "",
     });
+
+    setValidationErrors({});
     setIsEditOpen(true);
   };
 
-  // Updated CKEditor change handlers
   const handleDescriptionChange = (data: string) => {
     setFormData((prev) => ({ ...prev, description: data }));
     if (validationErrors.description) {
@@ -888,6 +1190,7 @@ export default function ProductView() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
     if (validationErrors[name]) {
       setValidationErrors((prev) => ({ ...prev, [name]: undefined }));
     }
@@ -912,7 +1215,7 @@ export default function ProductView() {
 
         setFormData((prev) => ({
           ...prev,
-          assets: (prev.assets || []).filter((_, i) => i !== index),
+          assets: prev.assets.filter((_, i) => i !== index),
         }));
       } catch (err: any) {
         console.error("Error deleting asset:", err);
@@ -921,12 +1224,13 @@ export default function ProductView() {
           err.response?.data?.message || "Failed to delete asset",
         );
       }
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        assets: (prev.assets || []).filter((_, i) => i !== index),
-      }));
+      return;
     }
+
+    setFormData((prev) => ({
+      ...prev,
+      assets: prev.assets.filter((_, i) => i !== index),
+    }));
   };
 
   const handleAssetFileChange = (index: number, file: File) => {
@@ -945,6 +1249,7 @@ export default function ProductView() {
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
+
     if (!validTypes.includes(file.type)) {
       showAlert(
         "error",
@@ -963,7 +1268,7 @@ export default function ProductView() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setFormData((prev) => {
-          const newAssets = [...(prev.assets || [])];
+          const newAssets = [...prev.assets];
           newAssets[index] = {
             ...newAssets[index],
             file,
@@ -977,7 +1282,7 @@ export default function ProductView() {
       reader.readAsDataURL(file);
     } else {
       setFormData((prev) => {
-        const newAssets = [...(prev.assets || [])];
+        const newAssets = [...prev.assets];
         newAssets[index] = {
           ...newAssets[index],
           file,
@@ -996,6 +1301,7 @@ export default function ProductView() {
     if (
       !formData.product_name ||
       !formData.c_id ||
+      !formData.sku ||
       !formData.sell_price ||
       !formData.quantity
     ) {
@@ -1004,8 +1310,11 @@ export default function ProductView() {
     }
 
     setIsSubmitting(true);
+    setValidationErrors({});
+
     try {
       const formDataToSend = new FormData();
+
       formDataToSend.append("_method", "PUT");
       formDataToSend.append("product_name", formData.product_name);
       formDataToSend.append("c_id", formData.c_id);
@@ -1017,21 +1326,31 @@ export default function ProductView() {
       formDataToSend.append("specification", formData.specification);
       formDataToSend.append("product_status", formData.product_status);
 
-      if (formData.description)
+      if (formData.description) {
         formDataToSend.append("description", formData.description);
-      if (formData.product_meta_title)
+      }
+      if (formData.product_meta_title) {
         formDataToSend.append(
           "product_meta_title",
           formData.product_meta_title,
         );
-      if (formData.meta_keywords)
+      }
+      if (formData.meta_keywords) {
         formDataToSend.append("meta_keywords", formData.meta_keywords);
-      if (formData.meta_description)
+      }
+      if (formData.meta_description) {
         formDataToSend.append("meta_description", formData.meta_description);
-      if (formData.meta_robots)
+      }
+      if (formData.meta_robots) {
         formDataToSend.append("meta_robots", formData.meta_robots);
+      }
 
-      const newAssets = (formData.assets || []).filter(
+      formDataToSend.append("weight", formData.weight || "");
+      formDataToSend.append("height", formData.height || "");
+      formDataToSend.append("length", formData.length || "");
+      formDataToSend.append("width", formData.width || "");
+
+      const newAssets = formData.assets.filter(
         (asset) => !asset.isExisting && asset.file,
       );
 
@@ -1057,6 +1376,8 @@ export default function ProductView() {
           "success",
           response.data.message || "Product updated successfully",
         );
+      } else {
+        showAlert("error", response.data.message || "Failed to update product");
       }
     } catch (err: any) {
       console.error("Error updating product:", err);
@@ -1078,17 +1399,16 @@ export default function ProductView() {
     }
   };
 
-  // Keep all your existing helper functions and display logic...
   const getStatusClasses = (status?: string) => {
     switch (status?.toLowerCase()) {
       case "active":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "border-green-200 bg-green-100 text-green-700";
       case "draft":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+        return "border-yellow-200 bg-yellow-100 text-yellow-700";
       case "inactive":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "border-red-200 bg-red-100 text-red-700";
       default:
-        return "bg-muted text-muted-foreground border-border";
+        return "border-border bg-muted text-muted-foreground";
     }
   };
 
@@ -1115,13 +1435,10 @@ export default function ProductView() {
   };
 
   const isDiscountActive = () => {
-    if (
-      !product?.discount?.price ||
-      !product?.discount?.start_date ||
-      !product?.discount?.end_date
-    ) {
+    if (!product?.discount?.start_date || !product?.discount?.end_date) {
       return false;
     }
+
     const today = new Date().toISOString().split("T")[0];
     return (
       product.discount.start_date <= today && product.discount.end_date >= today
@@ -1142,7 +1459,7 @@ export default function ProductView() {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -1170,10 +1487,10 @@ export default function ProductView() {
   const buyPrice = parseNumber(product.buy_price);
   const sellPrice = parseNumber(product.sell_price);
   const quantity = parseNumber(product.quantity);
-  const discountPrice = parseNumber(product.discount?.price);
-  const discountPercentage = parseNumber(product.discount?.percentage);
+  const discountPercentage = product.discount?.discount_percentage
+    ? parseNumber(product.discount.discount_percentage)
+    : 0;
   const isFeatured = parseBoolean(product.featured);
-
   const discountActive = isDiscountActive();
   const documentAssets = getDocumentAssets();
   const imageAssets = getImageAssets();
@@ -1183,18 +1500,28 @@ export default function ProductView() {
   const metaDescription = getSeoField("meta_description");
   const metaRobots = getSeoField("meta_robots");
 
+  const discountedPrice =
+    discountActive && discountPercentage > 0
+      ? sellPrice * (1 - discountPercentage / 100)
+      : null;
+
+  const hasDimensions =
+    product.dimensions?.weight != null ||
+    product.dimensions?.height != null ||
+    product.dimensions?.length != null ||
+    product.dimensions?.width != null;
+
   return (
     <div className="space-y-6 p-6">
       {/* Alert Toast */}
       {alert.show && (
-        <div className="fixed top-16 right-4 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
-          <Alert variant={alert.type}>
+        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-50 w-[calc(100%-2rem)] max-w-sm duration-300">
+          <Alert variant={alert.type === "success" ? "default" : "destructive"}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
             ) : (
               <XCircle className="h-5 w-5" />
             )}
-
             <div className="flex flex-col">
               <AlertTitle>
                 {alert.type === "success" ? "Success" : "Error"}
@@ -1288,13 +1615,13 @@ export default function ProductView() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Sell Price
                 </p>
-                {discountActive && discountPrice > 0 ? (
+                {discountActive && discountedPrice ? (
                   <div>
                     <span className="text-sm text-muted-foreground line-through">
                       ${sellPrice.toFixed(2)}
                     </span>
                     <p className="mt-1 text-2xl font-bold text-green-600">
-                      ${discountPrice.toFixed(2)}
+                      ${discountedPrice.toFixed(2)}
                     </p>
                   </div>
                 ) : (
@@ -1326,6 +1653,62 @@ export default function ProductView() {
                 </p>
               </div>
             </div>
+
+            {/* Dimensions Section */}
+            {hasDimensions && (
+              <div className="rounded-xl border border-dashed p-4">
+                <div className="mb-4 flex items-center gap-2">
+                  <Ruler className="h-4 w-4 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Product Dimensions</h3>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-4">
+                  {product.dimensions?.weight != null && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Weight
+                      </p>
+                      <p className="mt-1 text-lg font-semibold">
+                        {product.dimensions.weight} kg
+                      </p>
+                    </div>
+                  )}
+
+                  {product.dimensions?.height != null && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Height
+                      </p>
+                      <p className="mt-1 text-lg font-semibold">
+                        {product.dimensions.height} cm
+                      </p>
+                    </div>
+                  )}
+
+                  {product.dimensions?.length != null && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Length
+                      </p>
+                      <p className="mt-1 text-lg font-semibold">
+                        {product.dimensions.length} cm
+                      </p>
+                    </div>
+                  )}
+
+                  {product.dimensions?.width != null && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Width
+                      </p>
+                      <p className="mt-1 text-lg font-semibold">
+                        {product.dimensions.width} cm
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Main Data */}
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -1392,8 +1775,7 @@ export default function ProductView() {
             </div>
 
             {/* Discount */}
-            {(discountPrice > 0 ||
-              discountPercentage > 0 ||
+            {(discountPercentage > 0 ||
               product.discount?.start_date ||
               product.discount?.end_date) && (
               <div className="rounded-xl border border-dashed p-4">
@@ -1403,27 +1785,30 @@ export default function ProductView() {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Discount Price
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">
-                      {discountPrice > 0
-                        ? `$${discountPrice.toFixed(2)}`
-                        : "N/A"}
-                    </p>
-                  </div>
+                  {discountedPrice && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Discounted Price
+                      </p>
+                      <p className="mt-1 text-lg font-bold text-green-600">
+                        ${discountedPrice.toFixed(2)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Original: ${sellPrice.toFixed(2)}
+                      </p>
+                    </div>
+                  )}
 
-                  <div className="rounded-lg border bg-muted/20 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Discount %
-                    </p>
-                    <p className="mt-1 text-sm font-semibold">
-                      {discountPercentage > 0
-                        ? `${discountPercentage}%`
-                        : "N/A"}
-                    </p>
-                  </div>
+                  {discountPercentage > 0 && (
+                    <div className="rounded-lg border bg-muted/20 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                        Discount %
+                      </p>
+                      <p className="mt-1 text-lg font-semibold text-red-600">
+                        {discountPercentage}% OFF
+                      </p>
+                    </div>
+                  )}
 
                   <div className="rounded-lg border bg-muted/20 p-4">
                     <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1470,28 +1855,26 @@ export default function ProductView() {
             {/* Description and Specifications */}
             <div className="grid gap-6 md:grid-cols-2">
               {product.description && (
-                <div className="rounded-lg border p-4 h-full">
+                <div className="h-full rounded-lg border p-4">
                   <div className="mb-2 flex items-center gap-2">
                     <Info className="h-4 w-4" />
                     <h3 className="text-sm font-semibold">Description</h3>
                   </div>
-                  {/* Render HTML content from CKEditor */}
                   <div
-                    className="modal-scroll prose prose-sm max-w-none dark:prose-invert max-h-[150px] overflow-y-auto"
+                    className="modal-scroll prose prose-sm max-h-[150px] max-w-none overflow-y-auto dark:prose-invert"
                     dangerouslySetInnerHTML={{ __html: product.description }}
                   />
                 </div>
               )}
 
               {product.specification && (
-                <div className="rounded-lg border p-4 h-full">
+                <div className="h-full rounded-lg border p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Boxes className="h-4 w-4" />
                     <h3 className="text-sm font-semibold">Specifications</h3>
                   </div>
-                  {/* Render HTML content from CKEditor */}
                   <div
-                    className="modal-scroll prose prose-sm max-w-none dark:prose-invert max-h-[150px] overflow-y-auto"
+                    className="modal-scroll prose prose-sm max-h-[150px] max-w-none overflow-y-auto dark:prose-invert"
                     dangerouslySetInnerHTML={{ __html: product.specification }}
                   />
                 </div>
@@ -1721,7 +2104,7 @@ export default function ProductView() {
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <div className="rounded-lg border bg-muted/20 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   SEO Title Length
@@ -1753,28 +2136,34 @@ export default function ProductView() {
                     : 0}
                 </p>
               </div>
+
+              <div className="rounded-lg border bg-muted/20 p-4">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Meta Robots
+                </p>
+                <p className="mt-1 text-lg font-semibold">
+                  {metaRobots || "N/A"}
+                </p>
+              </div>
             </div>
           </TabsContent>
         </div>
       </Tabs>
 
-      {/* Edit Product Modal with CKEditor */}
+      {/* Edit Product Modal */}
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => {
           setIsEditOpen(open);
-          if (!open) {
-            setValidationErrors({});
-          }
+          if (!open) setValidationErrors({});
         }}
       >
-        <DialogContent className="modal-scroll sm:max-w-6xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>
-              Update the product details below. Assets removed will be deleted
-              immediately. The description and specification fields support rich
-              text formatting.
+              Update the product details below. Weight is stored in kg, and
+              height, length, width are stored in cm.
             </DialogDescription>
           </DialogHeader>
 

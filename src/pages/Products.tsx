@@ -63,8 +63,9 @@ import {
   PlusCircle,
   Tag,
   Percent,
-  Calendar,
   Gift,
+  Ruler,
+  Weight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
@@ -100,6 +101,13 @@ type ProductSEO = {
   meta_robots?: string;
 };
 
+type ProductDimension = {
+  height?: number; // cm
+  weight?: number; // kg
+  length?: number; // cm
+  width?: number; // cm
+};
+
 type Product = {
   product_id: number;
   product_name: string;
@@ -119,6 +127,7 @@ type Product = {
   featured: boolean;
   created_at?: string;
   updated_at?: string;
+  dimensions?: ProductDimension;
 };
 
 type AssetItem = {
@@ -150,6 +159,10 @@ type FormDataType = {
   product_status: string;
   featured: boolean;
   selected_discount?: string;
+  weight?: string;
+  height?: string;
+  length?: string;
+  width?: string;
 };
 
 type ValidationErrors = {
@@ -167,6 +180,10 @@ type ValidationErrors = {
   meta_description?: string[];
   product_status?: string[];
   assets?: string[];
+  weight?: string[];
+  height?: string[];
+  length?: string[];
+  width?: string[];
   [key: string]: string[] | undefined;
 };
 
@@ -195,6 +212,10 @@ const emptyForm: FormDataType = {
   meta_robots: "index, follow",
   product_status: "Active",
   featured: false,
+  weight: "",
+  height: "",
+  length: "",
+  width: "",
 };
 
 const emptyNewDiscount: NewDiscountData = {
@@ -401,7 +422,7 @@ function ProductFormFields({
     }
   };
 
-  const handleRemoveDiscount = async () => {
+  const handleRemoveSelectedDiscount = async () => {
     if (isEditMode && currentProductId && onRemoveDiscount) {
       await onRemoveDiscount();
     } else {
@@ -605,6 +626,125 @@ function ProductFormFields({
           </div>
         </div>
 
+        {/* Dimensions Section */}
+        <div className="grid gap-4 md:grid-cols-4 pt-2">
+          <div className="grid gap-2">
+            <Label htmlFor="weight" className="text-foreground">
+              Weight <span className="text-xs text-muted-foreground">(kg)</span>
+            </Label>
+
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.weight ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Weight className="h-4 w-4" />
+              </span>
+              <input
+                id="weight"
+                name="weight"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.weight || ""}
+                onChange={handleInputChange}
+                placeholder="Enter weight in kg"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="height" className="text-foreground">
+              Height <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.height ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="height"
+                name="height"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.height || ""}
+                onChange={handleInputChange}
+                placeholder="Enter height in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="length" className="text-foreground">
+              Length <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.length ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="length"
+                name="length"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.length || ""}
+                onChange={handleInputChange}
+                placeholder="Enter length in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="width" className="text-foreground">
+              Width <span className="text-xs text-muted-foreground">(cm)</span>
+            </Label>
+
+            <div
+              className={cn(
+                "flex h-10 items-center rounded-md border bg-background",
+                validationErrors.width ? "border-destructive" : "border-input",
+              )}
+            >
+              <span className="shrink-0 px-3 text-muted-foreground">
+                <Ruler className="h-4 w-4" />
+              </span>
+              <input
+                id="width"
+                name="width"
+                type="number"
+                step="0.01"
+                min="0"
+                value={formData.width || ""}
+                onChange={handleInputChange}
+                placeholder="Enter width in cm"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                disabled={isSubmitting}
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="grid items-start gap-4 md:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="buy_price" className="text-foreground">
@@ -767,7 +907,7 @@ function ProductFormFields({
                 type="button"
                 variant="destructive"
                 size="sm"
-                onClick={handleRemoveDiscount}
+                onClick={handleRemoveSelectedDiscount}
                 disabled={isSubmitting}
               >
                 Remove Discount
@@ -916,12 +1056,6 @@ function ProductFormFields({
                       handleDescriptionChange(data);
                     } else {
                       setFormData((prev) => ({ ...prev, description: data }));
-                      if (validationErrors.description) {
-                        setValidationErrors((prev) => ({
-                          ...prev,
-                          description: undefined,
-                        }));
-                      }
                     }
                   }}
                   disabled={isSubmitting}
@@ -956,12 +1090,6 @@ function ProductFormFields({
                       handleSpecificationChange(data);
                     } else {
                       setFormData((prev) => ({ ...prev, specification: data }));
-                      if (validationErrors.specification) {
-                        setValidationErrors((prev) => ({
-                          ...prev,
-                          specification: undefined,
-                        }));
-                      }
                     }
                   }}
                   disabled={isSubmitting}
@@ -1417,6 +1545,50 @@ export default function Products() {
       isValid = false;
     }
 
+    if (formData.weight && formData.weight !== "") {
+      const weightNum = parseFloat(formData.weight);
+      if (isNaN(weightNum)) {
+        errors.weight = ["Weight must be a valid number"];
+        isValid = false;
+      } else if (weightNum < 0) {
+        errors.weight = ["Weight cannot be negative"];
+        isValid = false;
+      }
+    }
+
+    if (formData.height && formData.height !== "") {
+      const heightNum = parseFloat(formData.height);
+      if (isNaN(heightNum)) {
+        errors.height = ["Height must be a valid number"];
+        isValid = false;
+      } else if (heightNum < 0) {
+        errors.height = ["Height cannot be negative"];
+        isValid = false;
+      }
+    }
+
+    if (formData.length && formData.length !== "") {
+      const lengthNum = parseFloat(formData.length);
+      if (isNaN(lengthNum)) {
+        errors.length = ["Length must be a valid number"];
+        isValid = false;
+      } else if (lengthNum < 0) {
+        errors.length = ["Length cannot be negative"];
+        isValid = false;
+      }
+    }
+
+    if (formData.width && formData.width !== "") {
+      const widthNum = parseFloat(formData.width);
+      if (isNaN(widthNum)) {
+        errors.width = ["Width must be a valid number"];
+        isValid = false;
+      } else if (widthNum < 0) {
+        errors.width = ["Width cannot be negative"];
+        isValid = false;
+      }
+    }
+
     setValidationErrors(errors);
     return isValid;
   };
@@ -1450,7 +1622,6 @@ export default function Products() {
       setLoading(true);
       setError(null);
       const response = await api.get("/products");
-      // console.log("Products data:", response.data);
 
       if (response.data.status === "success") {
         const normalizedProducts = response.data.data.map((product: any) => ({
@@ -1462,6 +1633,7 @@ export default function Products() {
           sell_price: Number(product.sell_price) || 0,
           discount_id: product.discount_id || undefined,
           discount: product.discount,
+          dimensions: product.dimensions,
         }));
 
         setProducts(normalizedProducts);
@@ -1531,6 +1703,7 @@ export default function Products() {
     1,
     Math.ceil(filteredProducts.length / productsPerPage),
   );
+
   const paginatedProducts = React.useMemo(() => {
     const startIndex = (currentPage - 1) * productsPerPage;
     return filteredProducts.slice(startIndex, startIndex + productsPerPage);
@@ -1648,6 +1821,7 @@ export default function Products() {
       "application/msword",
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     ];
+
     if (!validTypes.includes(file.type)) {
       showAlert(
         "error",
@@ -1881,7 +2055,77 @@ export default function Products() {
 
   const handleAddProduct = async () => {
     if (!validateForm()) {
-      const firstError = Object.values(validationErrors)[0]?.[0];
+      const errors: ValidationErrors = {};
+
+      if (!formData.product_name || formData.product_name.trim() === "") {
+        errors.product_name = ["Product name is required"];
+      } else if (formData.product_name.trim().length < 3) {
+        errors.product_name = ["Product name must be at least 3 characters"];
+      }
+
+      if (!formData.c_id || formData.c_id === "") {
+        errors.c_id = ["Category is required"];
+      }
+
+      if (!formData.sku || formData.sku.trim() === "") {
+        errors.sku = ["SKU is required"];
+      } else if (formData.sku.trim().length < 3) {
+        errors.sku = ["SKU must be at least 3 characters"];
+      }
+
+      if (!formData.buy_price || formData.buy_price === "") {
+        errors.buy_price = ["Buy price is required"];
+      }
+
+      if (!formData.sell_price || formData.sell_price === "") {
+        errors.sell_price = ["Sell price is required"];
+      }
+
+      if (!formData.quantity || formData.quantity === "") {
+        errors.quantity = ["Quantity is required"];
+      }
+
+      if (!formData.product_status || formData.product_status === "") {
+        errors.product_status = ["Product status is required"];
+      }
+
+      const plainDescription = stripHtml(formData.description || "");
+      if (!formData.description || plainDescription.trim() === "") {
+        errors.description = ["Description is required"];
+      }
+
+      const plainSpecification = stripHtml(formData.specification || "");
+      if (!formData.specification || plainSpecification.trim() === "") {
+        errors.specification = ["Specifications are required"];
+      }
+
+      if (
+        !formData.product_meta_title ||
+        formData.product_meta_title.trim() === ""
+      ) {
+        errors.product_meta_title = ["Meta title is required"];
+      }
+
+      if (!formData.meta_keywords || formData.meta_keywords.trim() === "") {
+        errors.meta_keywords = ["Meta keywords are required"];
+      }
+
+      if (
+        !formData.meta_description ||
+        formData.meta_description.trim() === ""
+      ) {
+        errors.meta_description = ["Meta description is required"];
+      }
+
+      const hasAssets = formData.assets && formData.assets.length > 0;
+      if (!hasAssets) {
+        errors.assets = [
+          "At least one product asset (image, video, or document) is required",
+        ];
+      }
+
+      setValidationErrors(errors);
+      const firstError = Object.values(errors)[0]?.[0];
       if (firstError) showAlert("error", firstError);
       return;
     }
@@ -1908,6 +2152,19 @@ export default function Products() {
       formDataToSend.append("meta_keywords", formData.meta_keywords);
       formDataToSend.append("meta_description", formData.meta_description);
       formDataToSend.append("meta_robots", formData.meta_robots);
+
+      if (formData.weight && formData.weight !== "") {
+        formDataToSend.append("weight", formData.weight);
+      }
+      if (formData.height && formData.height !== "") {
+        formDataToSend.append("height", formData.height);
+      }
+      if (formData.length && formData.length !== "") {
+        formDataToSend.append("length", formData.length);
+      }
+      if (formData.width && formData.width !== "") {
+        formDataToSend.append("width", formData.width);
+      }
 
       const validAssets = (formData.assets || []).filter(
         (asset) => asset.file !== null,
@@ -1983,7 +2240,12 @@ export default function Products() {
       product_status: product.product_status || "Active",
       featured: product.featured,
       selected_discount: product.discount_id?.toString() || "",
+      weight: product.dimensions?.weight?.toString() || "",
+      height: product.dimensions?.height?.toString() || "",
+      length: product.dimensions?.length?.toString() || "",
+      width: product.dimensions?.width?.toString() || "",
     });
+    setValidationErrors({});
     setIsEditOpen(true);
   };
 
@@ -1991,7 +2253,77 @@ export default function Products() {
     if (editProductId === null) return;
 
     if (!validateForm()) {
-      const firstError = Object.values(validationErrors)[0]?.[0];
+      const errors: ValidationErrors = {};
+
+      if (!formData.product_name || formData.product_name.trim() === "") {
+        errors.product_name = ["Product name is required"];
+      } else if (formData.product_name.trim().length < 3) {
+        errors.product_name = ["Product name must be at least 3 characters"];
+      }
+
+      if (!formData.c_id || formData.c_id === "") {
+        errors.c_id = ["Category is required"];
+      }
+
+      if (!formData.sku || formData.sku.trim() === "") {
+        errors.sku = ["SKU is required"];
+      } else if (formData.sku.trim().length < 3) {
+        errors.sku = ["SKU must be at least 3 characters"];
+      }
+
+      if (!formData.buy_price || formData.buy_price === "") {
+        errors.buy_price = ["Buy price is required"];
+      }
+
+      if (!formData.sell_price || formData.sell_price === "") {
+        errors.sell_price = ["Sell price is required"];
+      }
+
+      if (!formData.quantity || formData.quantity === "") {
+        errors.quantity = ["Quantity is required"];
+      }
+
+      if (!formData.product_status || formData.product_status === "") {
+        errors.product_status = ["Product status is required"];
+      }
+
+      const plainDescription = stripHtml(formData.description || "");
+      if (!formData.description || plainDescription.trim() === "") {
+        errors.description = ["Description is required"];
+      }
+
+      const plainSpecification = stripHtml(formData.specification || "");
+      if (!formData.specification || plainSpecification.trim() === "") {
+        errors.specification = ["Specifications are required"];
+      }
+
+      if (
+        !formData.product_meta_title ||
+        formData.product_meta_title.trim() === ""
+      ) {
+        errors.product_meta_title = ["Meta title is required"];
+      }
+
+      if (!formData.meta_keywords || formData.meta_keywords.trim() === "") {
+        errors.meta_keywords = ["Meta keywords are required"];
+      }
+
+      if (
+        !formData.meta_description ||
+        formData.meta_description.trim() === ""
+      ) {
+        errors.meta_description = ["Meta description is required"];
+      }
+
+      const hasAssets = formData.assets && formData.assets.length > 0;
+      if (!hasAssets) {
+        errors.assets = [
+          "At least one product asset (image, video, or document) is required",
+        ];
+      }
+
+      setValidationErrors(errors);
+      const firstError = Object.values(errors)[0]?.[0];
       if (firstError) showAlert("error", firstError);
       return;
     }
@@ -2021,6 +2353,27 @@ export default function Products() {
       formDataToSend.append("meta_keywords", formData.meta_keywords);
       formDataToSend.append("meta_description", formData.meta_description);
       formDataToSend.append("meta_robots", formData.meta_robots);
+
+      if (formData.weight && formData.weight !== "") {
+        formDataToSend.append("weight", formData.weight);
+      } else {
+        formDataToSend.append("weight", "");
+      }
+      if (formData.height && formData.height !== "") {
+        formDataToSend.append("height", formData.height);
+      } else {
+        formDataToSend.append("height", "");
+      }
+      if (formData.length && formData.length !== "") {
+        formDataToSend.append("length", formData.length);
+      } else {
+        formDataToSend.append("length", "");
+      }
+      if (formData.width && formData.width !== "") {
+        formDataToSend.append("width", formData.width);
+      } else {
+        formDataToSend.append("width", "");
+      }
 
       const newAssets = (formData.assets || []).filter(
         (asset) => !asset.isExisting && asset.file,
@@ -2153,7 +2506,7 @@ export default function Products() {
         </div>
         <div className="flex h-[60vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -2599,7 +2952,8 @@ export default function Products() {
             </DialogTitle>
             <DialogDescription>
               Fill in the details below to add a new product. All fields marked
-              with * are required.
+              with * are required. Weight is in kg, and height, length, and
+              width are in cm.
             </DialogDescription>
           </DialogHeader>
 
@@ -2655,7 +3009,8 @@ export default function Products() {
             <DialogTitle className="text-foreground">Edit Product</DialogTitle>
             <DialogDescription>
               Update the product details below. All fields marked with * are
-              required. You can add, change, or remove discounts.
+              required. Weight is in kg, and height, length, and width are in
+              cm.
             </DialogDescription>
           </DialogHeader>
 
