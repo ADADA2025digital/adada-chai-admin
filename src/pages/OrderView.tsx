@@ -19,6 +19,16 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import {
   ArrowLeft,
   ShoppingCart,
   User,
@@ -33,6 +43,7 @@ import {
   CheckCircle,
   XCircle,
   Check,
+  Loader2,
 } from "lucide-react";
 import api from "@/config/axiosConfig";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -122,6 +133,177 @@ type AlertType = {
   show: boolean;
   type: "success" | "error";
   message: string;
+};
+
+// Refund Modal Component
+const RefundModal = ({ 
+  isOpen, 
+  onClose, 
+  order, 
+  onRefundSuccess,
+  showAlert 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  order: TransformedOrder; 
+  onRefundSuccess: () => void;
+  showAlert: (type: "success" | "error", message: string) => void;
+}) => {
+  const [refundAmount, setRefundAmount] = useState<string>("");
+  const [reason, setReason] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setRefundAmount("");
+    setReason("");
+    setIsSubmitting(false);
+  };
+
+  const handleRefund = async () => {
+    setIsSubmitting(true);
+    try {
+      const payload: any = {};
+      
+      if (refundAmount && parseFloat(refundAmount) > 0) {
+        const amount = parseFloat(refundAmount);
+        if (amount > order.totalAmount) {
+          showAlert("error", `Refund amount cannot exceed $${order.totalAmount.toFixed(2)}`);
+          setIsSubmitting(false);
+          return;
+        }
+        payload.amount = amount;
+      }
+      
+      if (reason) {
+        payload.reason = reason;
+      }
+
+      const response = await api.post(`/orders/${order.id}/refund`, payload);
+
+      if (response.data.status === "success") {
+        showAlert("success", "Refund processed successfully");
+        onRefundSuccess();
+        onClose();
+        resetForm();
+      } else {
+        showAlert("error", response.data.message || "Failed to process refund");
+      }
+    } catch (error: any) {
+      console.error("Refund failed:", error);
+      const errorMessage = error.response?.data?.message || "Failed to process refund";
+      showAlert("error", errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose();
+          resetForm();
+        }
+      }}
+    >
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Process Refund - Order #{order.orderNumber}</DialogTitle>
+          <DialogDescription>
+            Refund will be processed to the original payment method. 
+            The refund amount cannot exceed the order total of ${order.totalAmount.toFixed(2)}.
+            {order.paymentStatus === 'paid' && ' This order is eligible for refund.'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="refundAmount">
+              Refund Amount <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                $
+              </span>
+              <Input
+                id="refundAmount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={order.totalAmount}
+                placeholder={order.totalAmount.toFixed(2)}
+                value={refundAmount}
+                onChange={(e) => setRefundAmount(e.target.value)}
+                className="pl-7"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Leave empty for full refund (Max: ${order.totalAmount.toFixed(2)})
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="reason">
+              Refund Reason <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <select
+              id="reason"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="">Select a reason</option>
+              <option value="customer_request">Customer Request</option>
+              <option value="duplicate">Duplicate Order</option>
+              <option value="fraudulent">Fraudulent Order</option>
+              <option value="product_unavailable">Product Unavailable</option>
+            </select>
+          </div>
+
+          {refundAmount && parseFloat(refundAmount) > 0 && (
+            <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-950">
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Partial refund of ${parseFloat(refundAmount).toFixed(2)} will be processed.
+                The customer will be refunded this amount to their original payment method.
+              </p>
+            </div>
+          )}
+
+          {!refundAmount && (
+            <div className="rounded-md bg-amber-50 p-3 dark:bg-amber-950">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                Full refund of ${order.totalAmount.toFixed(2)} will be processed.
+                The entire order amount will be refunded to the customer.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              onClose();
+              resetForm();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleRefund} 
+            disabled={isSubmitting}
+            className="bg-red-600 hover:bg-red-700"
+          >
+            {isSubmitting && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+            Process Refund
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 const normalizeStatus = (status: string) => status?.toLowerCase()?.trim() || "";
@@ -250,6 +432,7 @@ export default function OrderView() {
   const [newStatus, setNewStatus] = useState("");
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [statusChanged, setStatusChanged] = useState(false);
+  const [showRefundModal, setShowRefundModal] = useState(false);
   const [alert, setAlert] = useState<AlertType>({
     show: false,
     type: "success",
@@ -284,22 +467,14 @@ export default function OrderView() {
         } else {
           const errorMsg = "Failed to fetch order";
           setError(errorMsg);
-          if (isRefresh) {
-            showAlert("error", errorMsg);
-          } else {
-            showAlert("error", errorMsg);
-          }
+          showAlert("error", errorMsg);
         }
       } catch (err: any) {
         console.error("Error fetching order:", err);
         const errorMessage =
           err.response?.data?.message || "Failed to fetch order";
         setError(errorMessage);
-        if (isRefresh) {
-          showAlert("error", errorMessage);
-        } else {
-          showAlert("error", errorMessage);
-        }
+        showAlert("error", errorMessage);
       } finally {
         if (isRefresh) {
           setRefreshing(false);
@@ -450,6 +625,10 @@ export default function OrderView() {
   };
 
   const handleRefresh = () => {
+    fetchOrder(true);
+  };
+
+  const handleRefundSuccess = () => {
     fetchOrder(true);
   };
 
@@ -733,7 +912,7 @@ export default function OrderView() {
             </h3>
 
             <div className="space-y-6">
-              {/* ROW 1 */}
+              {/* ROW 1 - Order Status, Payment Status, Order Value */}
               <div className="grid grid-cols-3 gap-4">
                 {/* Order Status */}
                 <div className="space-y-2">
@@ -770,65 +949,111 @@ export default function OrderView() {
                 </div>
               </div>
 
-              {/* ROW 2 */}
-              <div className="space-y-2">
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  Update Order Status
-                </p>
+              {/* <Separator /> */}
 
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <Select
-                      value={newStatus}
-                      onValueChange={handleStatusChange}
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select status" />
-                      </SelectTrigger>
+              {/* ROW 2 - Update Order Status & Refund in ONE ROW */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Update Order Status Section */}
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    Update Order Status
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <Select
+                        value={newStatus}
+                        onValueChange={handleStatusChange}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "pending",
+                            "confirmed",
+                            "processing",
+                            "shipping",
+                            "delivered",
+                            "cancelled",
+                          ].map((status) => (
+                            <SelectItem key={status} value={status}>
+                              {formatStatusLabel(status)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {statusChanged && (
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          size="icon"
+                          onClick={handleStatusUpdate}
+                          disabled={updatingStatus}
+                        >
+                          {updatingStatus ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={handleCancelStatusChange}
+                          disabled={updatingStatus}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
-                      <SelectContent className="border-zinc-200 bg-white text-zinc-900 dark:border-white/10 dark:bg-popover dark:text-popover-foreground">
-                        {[
-                          "pending",
-                          "confirmed",
-                          "processing",
-                          "shipping",
-                          "delivered",
-                          "cancelled",
-                        ].map((status) => (
-                          <SelectItem
-                            key={status}
-                            value={status}
-                            className="text-zinc-900 data-[highlighted]:bg-zinc-100 data-[highlighted]:text-zinc-900 dark:text-white dark:data-[highlighted]:bg-white/10 dark:data-[highlighted]:text-white"
-                          >
-                            {formatStatusLabel(status)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                {/* Refund Section */}
+                <div>
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Process Refund
+                    </p>
+                    {order.paymentStatus === 'refunded' && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                        <CheckCircle className="h-3 w-3" />
+                        Refunded
+                      </span>
+                    )}
                   </div>
 
-                  {statusChanged && (
-                    <div className="flex shrink-0 items-center gap-2">
-                      <Button
-                        size="icon"
-                        onClick={handleStatusUpdate}
-                        disabled={updatingStatus}
-                      >
-                        {updatingStatus ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                      </Button>
+                  {/* Refund Button - Only for paid orders not refunded */}
+                  {order.paymentStatus === 'paid' && (
+                    <Button
+                      variant="outline"
+                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      onClick={() => setShowRefundModal(true)}
+                    >
+                      <RefreshCw className="mr-2 h-4 w-4" />
+                      Process Refund
+                    </Button>
+                  )}
 
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={handleCancelStatusChange}
-                        disabled={updatingStatus}
-                      >
-                        <XCircle className="h-4 w-4" />
-                      </Button>
+                  {/* Refund Info for refunded orders */}
+                  {order.paymentStatus === 'refunded' && (
+                    <div className="rounded-md bg-muted p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Amount:</span>
+                        <span className="font-semibold">${order.totalAmount.toFixed(2)}</span>
+                      </div>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        Refund processed successfully
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Message for non-refundable orders */}
+                  {order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded' && (
+                    <div className="rounded-md bg-amber-50 p-3">
+                      <p className="text-xs text-amber-700">
+                        Cannot refund - Payment status: {formatStatusLabel(order.paymentStatus)}
+                      </p>
                     </div>
                   )}
                 </div>
@@ -978,6 +1203,15 @@ export default function OrderView() {
           </Table>
         </div>
       </div>
+
+      {/* Refund Modal */}
+      <RefundModal
+        isOpen={showRefundModal}
+        onClose={() => setShowRefundModal(false)}
+        order={order}
+        onRefundSuccess={handleRefundSuccess}
+        showAlert={showAlert}
+      />
     </div>
   );
 }

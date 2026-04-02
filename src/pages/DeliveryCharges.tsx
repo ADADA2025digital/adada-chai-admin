@@ -38,13 +38,10 @@ import {
   Plus,
   Search,
   Pencil,
-  Trash2,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
-  AlertTriangle,
   Clock,
-  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -93,9 +90,7 @@ export default function DeliveryChargePage() {
 
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
 
-  const [itemToDelete, setItemToDelete] = useState<DeliveryCharge | null>(null);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [alert, setAlert] = useState<AlertType>({
     show: false,
@@ -184,30 +179,6 @@ export default function DeliveryChargePage() {
         showAlert("error", "Delivery charge not found");
       } else {
         showAlert("error", error.response?.data?.message || "Failed to update delivery charge");
-      }
-      return false;
-    }
-  }, [fetchDeliveryCharges]);
-
-  const deleteDeliveryCharge = useCallback(async (id: number) => {
-    try {
-      const response = await api.delete(`/delivery-options/${id}`);
-      
-      if (response.data.status === "success") {
-        await fetchDeliveryCharges();
-        showAlert("success", "Delivery charge deleted successfully");
-        return true;
-      } else {
-        showAlert("error", response.data.message || "Failed to delete delivery charge");
-        return false;
-      }
-    } catch (error: any) {
-      console.error("Error deleting delivery charge:", error);
-      
-      if (error.response?.status === 404) {
-        showAlert("error", "Delivery charge not found");
-      } else {
-        showAlert("error", error.response?.data?.message || "Failed to delete delivery charge");
       }
       return false;
     }
@@ -365,21 +336,6 @@ export default function DeliveryChargePage() {
     }
   }, [editId, validateForm, updateDeliveryCharge, formData, resetForm]);
 
-  const handleDeleteClick = useCallback((item: DeliveryCharge) => {
-    setItemToDelete(item);
-    setIsDeleteOpen(true);
-  }, []);
-
-  const handleConfirmDelete = useCallback(async () => {
-    if (itemToDelete) {
-      const success = await deleteDeliveryCharge(itemToDelete.option_id);
-      if (success) {
-        setIsDeleteOpen(false);
-        setItemToDelete(null);
-      }
-    }
-  }, [itemToDelete, deleteDeliveryCharge]);
-
   const handlePageChange = useCallback(
     (page: number) => {
       if (page < 1 || page > totalPages) return;
@@ -419,7 +375,7 @@ export default function DeliveryChargePage() {
 
         <div className="grid gap-2">
           <Label htmlFor="delivery_price">
-            Delivery Price (LKR) <span className="text-destructive">*</span>
+            Delivery Price ($) <span className="text-destructive">*</span>
           </Label>
           <Input
             id="delivery_price"
@@ -468,10 +424,35 @@ export default function DeliveryChargePage() {
 
   if (isLoading) {
     return (
-      <div className="flex h-[calc(100vh-200px)] items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="mx-auto h-12 w-12 animate-spin text-primary" />
-          <p className="mt-4 text-sm text-muted-foreground">Loading delivery charges...</p>
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
+            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+          </div>
+        </div>
+        <Separator />
+
+        {/* Stats loading skeleton */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i} className="rounded-2xl shadow-sm">
+              <CardContent className="flex items-center justify-between p-5">
+                <div>
+                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
+                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                </div>
+                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="flex h-[60vh] items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading...</p>
+          </div>
         </div>
       </div>
     );
@@ -575,7 +556,7 @@ export default function DeliveryChargePage() {
           <div>
             <CardTitle>Delivery Charge Listing</CardTitle>
             <CardDescription>
-              View, add, edit, and delete delivery charges
+              View, add, and edit delivery charges
             </CardDescription>
           </div>
 
@@ -600,7 +581,7 @@ export default function DeliveryChargePage() {
                 <TableRow>
                   <TableHead className="w-20 text-center">ID</TableHead>
                   <TableHead className="min-w-[200px]">Delivery Title</TableHead>
-                  <TableHead className="w-40 text-center">Price (LKR)</TableHead>
+                  <TableHead className="w-40 text-center">Price ($)</TableHead>
                   <TableHead className="min-w-[300px]">Description</TableHead>
                   <TableHead className="w-24 text-center">Actions</TableHead>
                 </TableRow>
@@ -617,7 +598,7 @@ export default function DeliveryChargePage() {
                         <p className="font-medium">{item.delivery_title}</p>
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        Rs. {parseFloat(item.delivery_price.toString()).toFixed(2)}
+                        $ {parseFloat(item.delivery_price.toString()).toFixed(2)}
                       </TableCell>
                       <TableCell className="max-w-[500px]">
                         <p className="line-clamp-2 text-sm text-muted-foreground">
@@ -634,15 +615,6 @@ export default function DeliveryChargePage() {
                             title="Edit delivery charge"
                           >
                             <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleDeleteClick(item)}
-                            className="h-8 w-8 hover:text-destructive"
-                            title="Delete delivery charge"
-                          >
-                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -810,33 +782,6 @@ export default function DeliveryChargePage() {
               Cancel
             </Button>
             <Button onClick={handleUpdateItem}>Update Delivery Charge</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
-      <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
-              </div>
-              <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
-            </div>
-            <DialogDescription className="pt-4">
-              Are you sure you want to delete the delivery charge "
-              {itemToDelete?.delivery_title}"? This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter className="gap-2 sm:gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="destructive" onClick={handleConfirmDelete}>
-              Delete Delivery Charge
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
