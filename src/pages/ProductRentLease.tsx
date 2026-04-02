@@ -44,7 +44,6 @@ import {
   Package,
   Edit,
   ShoppingCart,
-  Users,
   FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,7 +59,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-// Rent Request Interface
 interface RentRequest {
   rent_id: number;
   customer_id: number;
@@ -104,14 +102,12 @@ type LoadingState = {
   updatingStatus: boolean;
 };
 
-// Alert interface
 interface AlertState {
   show: boolean;
   type: "success" | "error";
   message: string;
 }
 
-// Status badge component
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig = {
     pending: {
@@ -162,7 +158,6 @@ const StatusBadge = ({ status }: { status?: string }) => {
   );
 };
 
-// Product Image component
 const ProductImage = ({
   product,
   className,
@@ -239,7 +234,6 @@ export default function ProductRentLease() {
     completed: 0,
   });
 
-  // Alert state
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -259,7 +253,6 @@ export default function ProductRentLease() {
   const [currentPage, setCurrentPage] = useState(1);
   const requestsPerPage = 15;
 
-  // Show alert function with auto-dismiss
   const showAlert = useCallback(
     (type: "success" | "error", message: string) => {
       setAlert({ show: true, type, message });
@@ -270,7 +263,6 @@ export default function ProductRentLease() {
     [],
   );
 
-  // Fetch all rent requests from API
   const fetchRentRequests = useCallback(
     async (showLoading = true, showSuccessAlert = false) => {
       try {
@@ -284,7 +276,6 @@ export default function ProductRentLease() {
         if (response.data.status === "success") {
           let requests: RentRequest[] = [];
 
-          // Handle the response structure from your admin endpoint
           if (
             response.data.data &&
             Array.isArray(response.data.data.rent_requests)
@@ -299,11 +290,9 @@ export default function ProductRentLease() {
 
           setRentRequests(requests);
 
-          // Set statistics from API response
           if (response.data.statistics) {
             setStatistics(response.data.statistics);
           } else {
-            // Calculate statistics if not provided
             setStatistics({
               total: requests.length,
               pending: requests.filter((r) => r.rent_status === "pending")
@@ -354,7 +343,6 @@ export default function ProductRentLease() {
     [showAlert],
   );
 
-  // Update rent request status (Admin)
   const handleUpdateStatus = useCallback(async () => {
     if (!statusUpdateRequest || !statusUpdateData.rent_status) {
       console.error("❌ No request or status to update");
@@ -373,13 +361,12 @@ export default function ProductRentLease() {
       );
 
       if (response.data.status === "success") {
-        // Update local state
         setRentRequests((prev) =>
           prev.map((req) =>
             req.rent_id === statusUpdateRequest.rent_id
               ? {
                   ...req,
-                  rent_status: statusUpdateData.rent_status as any,
+                  rent_status: statusUpdateData.rent_status as RentRequest["rent_status"],
                   rent_note: statusUpdateData.rent_note,
                   updated_at: new Date().toISOString(),
                 }
@@ -387,14 +374,12 @@ export default function ProductRentLease() {
           ),
         );
 
-        // Update statistics
         setStatistics((prevStats) => {
           const oldStatus = statusUpdateRequest.rent_status;
           const newStatus = statusUpdateData.rent_status;
 
           const updatedStats = { ...prevStats };
 
-          // Decrement old status count
           if (oldStatus === "pending")
             updatedStats.pending = Math.max(0, updatedStats.pending - 1);
           if (oldStatus === "approved")
@@ -406,7 +391,6 @@ export default function ProductRentLease() {
           if (oldStatus === "completed")
             updatedStats.completed = Math.max(0, updatedStats.completed - 1);
 
-          // Increment new status count
           if (newStatus === "pending") updatedStats.pending++;
           if (newStatus === "approved") updatedStats.approved++;
           if (newStatus === "rejected") updatedStats.rejected++;
@@ -457,32 +441,37 @@ export default function ProductRentLease() {
     }).format(numAmount);
   };
 
-  // Filter requests based on search
+  // Latest request first, but display table serial number as 1, 2, 3...
   const filteredRequests = useMemo(() => {
     const q = search.toLowerCase().trim();
 
-    if (!q) return rentRequests;
+    let filtered = rentRequests;
 
-    const filtered = rentRequests.filter((request) => {
-      const customerName = request.customer?.full_name?.toLowerCase() || "";
-      const customerEmail = request.customer?.email?.toLowerCase() || "";
-      const customerPhone = request.customer?.ph_number?.toLowerCase() || "";
-      const productName = request.product?.product_name?.toLowerCase() || "";
-      const status = request.rent_status?.toLowerCase() || "";
-      const query = request.query?.toLowerCase() || "";
+    if (q) {
+      filtered = rentRequests.filter((request) => {
+        const customerName = request.customer?.full_name?.toLowerCase() || "";
+        const customerEmail = request.customer?.email?.toLowerCase() || "";
+        const customerPhone = request.customer?.ph_number?.toLowerCase() || "";
+        const productName = request.product?.product_name?.toLowerCase() || "";
+        const status = request.rent_status?.toLowerCase() || "";
+        const query = request.query?.toLowerCase() || "";
 
-      return (
-        request.rent_id.toString().includes(q) ||
-        customerName.includes(q) ||
-        customerEmail.includes(q) ||
-        customerPhone.includes(q) ||
-        productName.includes(q) ||
-        status.includes(q) ||
-        query.includes(q)
-      );
-    });
+        return (
+          request.rent_id.toString().includes(q) ||
+          customerName.includes(q) ||
+          customerEmail.includes(q) ||
+          customerPhone.includes(q) ||
+          productName.includes(q) ||
+          status.includes(q) ||
+          query.includes(q)
+        );
+      });
+    }
 
-    return filtered;
+    return [...filtered].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
   }, [rentRequests, search]);
 
   const totalPages = Math.max(
@@ -506,7 +495,6 @@ export default function ProductRentLease() {
     }
   }, [currentPage, totalPages]);
 
-  // Initial fetch
   useEffect(() => {
     fetchRentRequests(true, false);
   }, [fetchRentRequests]);
@@ -549,7 +537,6 @@ export default function ProductRentLease() {
         </div>
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
@@ -578,7 +565,6 @@ export default function ProductRentLease() {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Alert Notification */}
       {alert.show && (
         <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
           <Alert variant={alert.type === "success" ? "default" : "destructive"}>
@@ -598,7 +584,6 @@ export default function ProductRentLease() {
         </div>
       )}
 
-      {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -651,7 +636,6 @@ export default function ProductRentLease() {
         </div>
       )}
 
-      {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
@@ -736,7 +720,6 @@ export default function ProductRentLease() {
         </Card>
       </div>
 
-      {/* Rent Requests Table */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -755,6 +738,7 @@ export default function ProductRentLease() {
             />
           </div>
         </CardHeader>
+
         <CardContent>
           <div className="overflow-x-auto rounded-xl border">
             <Table>
@@ -770,13 +754,15 @@ export default function ProductRentLease() {
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
+
               <TableBody>
                 {paginatedRequests.length > 0 ? (
-                  paginatedRequests.map((request) => (
+                  paginatedRequests.map((request, index) => (
                     <TableRow key={request.rent_id} className="group">
                       <TableCell className="font-mono text-sm text-center">
-                        {request.rent_id}
+                        {(currentPage - 1) * requestsPerPage + index + 1}
                       </TableCell>
+
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <ProductImage
@@ -793,7 +779,7 @@ export default function ProductRentLease() {
                                   {formatCurrency(request.product.sell_price)}
                                 </span>
                               )}
-                              {request.product?.quantity && (
+                              {request.product?.quantity !== undefined && (
                                 <span className="text-xs text-muted-foreground">
                                   Qty: {request.product.quantity}
                                 </span>
@@ -807,12 +793,14 @@ export default function ProductRentLease() {
                           </div>
                         </div>
                       </TableCell>
+
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span>{request.customer?.full_name || "N/A"}</span>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         {request.customer?.ph_number ? (
                           <div className="flex items-center gap-2">
@@ -822,20 +810,22 @@ export default function ProductRentLease() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
-                            —
-                          </span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
+
                       <TableCell className="font-medium">
                         {formatCurrency(request.product?.sell_price || 0)}
                       </TableCell>
+
                       <TableCell>
                         <StatusBadge status={request.rent_status} />
                       </TableCell>
+
                       <TableCell className="text-sm">
                         {formatDateTime(request.created_at)}
                       </TableCell>
+
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -846,6 +836,7 @@ export default function ProductRentLease() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
+
                           <Button
                             variant="outline"
                             size="icon"
@@ -903,6 +894,7 @@ export default function ProductRentLease() {
                 <span className="font-medium">{filteredRequests.length}</span>{" "}
                 requests
               </p>
+
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -913,13 +905,17 @@ export default function ProductRentLease() {
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
                 </Button>
+
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                   let page = index + 1;
+
                   if (totalPages > 5 && currentPage > 3) {
                     page = currentPage - 2 + index;
                     if (page > totalPages) return null;
                   }
+
                   if (page > totalPages) return null;
+
                   return (
                     <Button
                       key={page}
@@ -932,6 +928,7 @@ export default function ProductRentLease() {
                     </Button>
                   );
                 })}
+
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2">...</span>
@@ -945,6 +942,7 @@ export default function ProductRentLease() {
                     </Button>
                   </>
                 )}
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -960,7 +958,6 @@ export default function ProductRentLease() {
         </CardContent>
       </Card>
 
-      {/* View Details Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
@@ -973,17 +970,18 @@ export default function ProductRentLease() {
           {viewRequest && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                {/* Product Information Section */}
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <Package className="h-4 w-4" />
                     Product Information
                   </h3>
+
                   <div className="flex gap-6">
                     <ProductImage
                       product={viewRequest.product}
                       className="h-32 w-32 rounded-lg"
                     />
+
                     <div className="flex-1 space-y-2">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -994,6 +992,7 @@ export default function ProductRentLease() {
                             {viewRequest.product?.product_name || "N/A"}
                           </p>
                         </div>
+
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             Price
@@ -1004,6 +1003,7 @@ export default function ProductRentLease() {
                             )}
                           </p>
                         </div>
+
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             Quantity Available
@@ -1012,6 +1012,7 @@ export default function ProductRentLease() {
                             {viewRequest.product?.quantity || "N/A"}
                           </p>
                         </div>
+
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             SKU
@@ -1023,6 +1024,7 @@ export default function ProductRentLease() {
                       </div>
                     </div>
                   </div>
+
                   {viewRequest.product?.description && (
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
@@ -1039,12 +1041,12 @@ export default function ProductRentLease() {
                   )}
                 </div>
 
-                {/* Customer Information Section */}
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Customer Information
                   </h3>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1054,6 +1056,7 @@ export default function ProductRentLease() {
                         {viewRequest.customer?.full_name || "N/A"}
                       </p>
                     </div>
+
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Email Address
@@ -1063,6 +1066,7 @@ export default function ProductRentLease() {
                         {viewRequest.customer?.email || "N/A"}
                       </p>
                     </div>
+
                     {viewRequest.customer?.ph_number && (
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1077,12 +1081,13 @@ export default function ProductRentLease() {
                   </div>
                 </div>
               </div>
-              {/* Rental Details Section */}
+
               <div className="rounded-lg border bg-card p-6">
                 <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Rental Details
                 </h3>
+
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1092,6 +1097,7 @@ export default function ProductRentLease() {
                       {formatCurrency(viewRequest.product?.sell_price || 0)}
                     </p>
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Request Date
@@ -1100,6 +1106,7 @@ export default function ProductRentLease() {
                       {formatDateTime(viewRequest.created_at)}
                     </p>
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Last Updated
@@ -1108,6 +1115,7 @@ export default function ProductRentLease() {
                       {formatDateTime(viewRequest.updated_at)}
                     </p>
                   </div>
+
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Request Status
@@ -1122,6 +1130,7 @@ export default function ProductRentLease() {
                     </div>
                   </div>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-x-8 gap-y-4 mt-4">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1138,7 +1147,6 @@ export default function ProductRentLease() {
         </DialogContent>
       </Dialog>
 
-      {/* Status Update Modal */}
       <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -1204,6 +1212,7 @@ export default function ProductRentLease() {
                 >
                   Cancel
                 </Button>
+
                 <Button
                   type="button"
                   onClick={handleUpdateStatus}
