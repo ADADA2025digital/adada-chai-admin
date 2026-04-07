@@ -165,6 +165,10 @@ type OrderType = {
   order_status: string;
   payment_status: string;
   payment_intent_id: string;
+  delivery_charge: string;
+  grand_total: string;
+  total_weight: string;
+  delivery_type: string | null;
   created_at: string;
   updated_at: string;
   customer?: {
@@ -261,6 +265,7 @@ export default function Orders() {
       setLoading(true);
       setError(null);
       const response = await api.get('/orders');
+      // console.log('API Response:', response.data);
       if (response.data.status === 'success') {
         setOrders(response.data.data);
       } else {
@@ -322,10 +327,15 @@ export default function Orders() {
   const totalRevenue = orders
     .filter((item) => item.payment_status === "paid")
     .reduce((sum, item) => {
-      const total = item.items?.reduce((itemSum, orderItem) => {
+      // Use grand_total from API if available, otherwise calculate
+      if (item.grand_total) {
+        return sum + parseFloat(item.grand_total);
+      }
+      const subtotal = item.items?.reduce((itemSum, orderItem) => {
         return itemSum + (orderItem.order_price * orderItem.quantity);
       }, 0) || 0;
-      return sum + total;
+      const deliveryCharge = item.delivery_charge ? parseFloat(item.delivery_charge) : 0;
+      return sum + subtotal + deliveryCharge;
     }, 0);
 
   const totalPages = Math.max(1, Math.ceil(sortedAndFilteredOrders.length / ordersPerPage));
@@ -538,6 +548,8 @@ export default function Orders() {
                     <TableHead className="w-20 text-center">No</TableHead>
                     <TableHead>Order ID</TableHead>
                     <TableHead>Customer Name</TableHead>
+                    <TableHead>Subtotal</TableHead>
+                    <TableHead>Delivery Charge</TableHead>
                     <TableHead>Total Amount</TableHead>
                     <TableHead>Order Status</TableHead>
                     <TableHead>Payment Status</TableHead>
@@ -548,9 +560,16 @@ export default function Orders() {
                 <TableBody>
                   {paginatedOrders.length > 0 ? (
                     paginatedOrders.map((order, index) => {
-                      const totalAmount = order.items?.reduce((sum, item) => {
+                      // Calculate subtotal from items
+                      const subtotal = order.items?.reduce((sum, item) => {
                         return sum + (item.order_price * item.quantity);
                       }, 0) || 0;
+                      
+                      // Get delivery charge from API response
+                      const deliveryCharge = order.delivery_charge ? parseFloat(order.delivery_charge) : 0;
+                      
+                      // Calculate total amount (subtotal + delivery charge)
+                      const totalAmount = subtotal + deliveryCharge;
 
                       return (
                         <TableRow key={order.o_id}>
@@ -569,7 +588,9 @@ export default function Orders() {
                               <p className="text-xs text-muted-foreground">{order.customer?.email || 'N/A'}</p>
                             </div>
                           </TableCell>
-                          <TableCell>${totalAmount.toFixed(2)}</TableCell>
+                          <TableCell>${subtotal.toFixed(2)}</TableCell>
+                          <TableCell>${deliveryCharge.toFixed(2)}</TableCell>
+                          <TableCell className="font-semibold">${totalAmount.toFixed(2)}</TableCell>
                           <TableCell>
                             <span
                               className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium capitalize ${getOrderStatusClasses(
@@ -606,7 +627,7 @@ export default function Orders() {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                        colSpan={9}
                         className="py-12 text-center text-sm text-muted-foreground"
                       >
                         <div className="flex flex-col items-center gap-2">

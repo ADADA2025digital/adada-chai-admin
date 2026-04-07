@@ -27,8 +27,8 @@ export const setCookie = (
 
 // Base API instance (for all API calls)
 const api = axios.create({
-  // baseURL: "http://127.0.0.1:8000/api",
-  baseURL: "https://urbanviewre.com/chai-backend/api",
+  baseURL: "http://127.0.0.1:8000/api",
+  // baseURL: "https://urbanviewre.com/chai-backend/api",
 
   headers: {
     "Content-Type": "application/json",
@@ -38,8 +38,8 @@ const api = axios.create({
 
 // Auth API instance (for auth-related endpoints)
 export const authApi = axios.create({
-  // baseURL: "http://127.0.0.1:8000/api/",
-  baseURL: "https://urbanviewre.com/chai-backend/api",
+  baseURL: "http://127.0.0.1:8000/api/",
+  // baseURL: "https://urbanviewre.com/chai-backend/api",
 
   headers: {
     "Content-Type": "application/json",

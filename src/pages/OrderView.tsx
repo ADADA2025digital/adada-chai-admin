@@ -44,6 +44,7 @@ import {
   XCircle,
   Check,
   Loader2,
+  Truck,
 } from "lucide-react";
 import api from "@/config/axiosConfig";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
@@ -57,6 +58,10 @@ type OrderType = {
   order_status: string;
   payment_status: string;
   payment_intent_id: string;
+  delivery_charge: string;
+  grand_total: string;
+  total_weight: string;
+  delivery_type: string | null;
   created_at: string;
   updated_at: string;
   customer?: {
@@ -107,6 +112,8 @@ type TransformedOrder = {
   phone: string;
   date: string;
   items: number;
+  subtotal: number;
+  deliveryCharge: number;
   totalAmount: number;
   paymentMethod: string;
   paymentStatus: string;
@@ -136,16 +143,16 @@ type AlertType = {
 };
 
 // Refund Modal Component
-const RefundModal = ({ 
-  isOpen, 
-  onClose, 
-  order, 
+const RefundModal = ({
+  isOpen,
+  onClose,
+  order,
   onRefundSuccess,
-  showAlert 
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  order: TransformedOrder; 
+  showAlert,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  order: TransformedOrder;
   onRefundSuccess: () => void;
   showAlert: (type: "success" | "error", message: string) => void;
 }) => {
@@ -163,17 +170,20 @@ const RefundModal = ({
     setIsSubmitting(true);
     try {
       const payload: any = {};
-      
+
       if (refundAmount && parseFloat(refundAmount) > 0) {
         const amount = parseFloat(refundAmount);
         if (amount > order.totalAmount) {
-          showAlert("error", `Refund amount cannot exceed $${order.totalAmount.toFixed(2)}`);
+          showAlert(
+            "error",
+            `Refund amount cannot exceed $${order.totalAmount.toFixed(2)}`,
+          );
           setIsSubmitting(false);
           return;
         }
         payload.amount = amount;
       }
-      
+
       if (reason) {
         payload.reason = reason;
       }
@@ -190,7 +200,8 @@ const RefundModal = ({
       }
     } catch (error: any) {
       console.error("Refund failed:", error);
-      const errorMessage = error.response?.data?.message || "Failed to process refund";
+      const errorMessage =
+        error.response?.data?.message || "Failed to process refund";
       showAlert("error", errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -211,16 +222,19 @@ const RefundModal = ({
         <DialogHeader>
           <DialogTitle>Process Refund - Order #{order.orderNumber}</DialogTitle>
           <DialogDescription>
-            Refund will be processed to the original payment method. 
-            The refund amount cannot exceed the order total of ${order.totalAmount.toFixed(2)}.
-            {order.paymentStatus === 'paid' && ' This order is eligible for refund.'}
+            Refund will be processed to the original payment method. The refund
+            amount cannot exceed the order total of $
+            {order.totalAmount.toFixed(2)}.
+            {order.paymentStatus === "paid" &&
+              " This order is eligible for refund."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="refundAmount">
-              Refund Amount <span className="text-muted-foreground">(Optional)</span>
+              Refund Amount{" "}
+              <span className="text-muted-foreground">(Optional)</span>
             </Label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -245,7 +259,8 @@ const RefundModal = ({
 
           <div className="grid gap-2">
             <Label htmlFor="reason">
-              Refund Reason <span className="text-muted-foreground">(Optional)</span>
+              Refund Reason{" "}
+              <span className="text-muted-foreground">(Optional)</span>
             </Label>
             <select
               id="reason"
@@ -264,8 +279,9 @@ const RefundModal = ({
           {refundAmount && parseFloat(refundAmount) > 0 && (
             <div className="rounded-md bg-blue-50 p-3 dark:bg-blue-950">
               <p className="text-sm text-blue-700 dark:text-blue-300">
-                Partial refund of ${parseFloat(refundAmount).toFixed(2)} will be processed.
-                The customer will be refunded this amount to their original payment method.
+                Partial refund of ${parseFloat(refundAmount).toFixed(2)} will be
+                processed. The customer will be refunded this amount to their
+                original payment method.
               </p>
             </div>
           )}
@@ -273,16 +289,17 @@ const RefundModal = ({
           {!refundAmount && (
             <div className="rounded-md bg-amber-50 p-3 dark:bg-amber-950">
               <p className="text-sm text-amber-700 dark:text-amber-300">
-                Full refund of ${order.totalAmount.toFixed(2)} will be processed.
-                The entire order amount will be refunded to the customer.
+                Full refund of ${order.totalAmount.toFixed(2)} will be
+                processed. The entire order amount will be refunded to the
+                customer.
               </p>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => {
               onClose();
               resetForm();
@@ -290,14 +307,12 @@ const RefundModal = ({
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleRefund} 
+          <Button
+            onClick={handleRefund}
             disabled={isSubmitting}
             className="bg-red-600 hover:bg-red-700"
           >
-            {isSubmitting && (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            )}
+            {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Process Refund
           </Button>
         </DialogFooter>
@@ -458,6 +473,7 @@ export default function OrderView() {
         setError(null);
 
         const response = await api.get(`/orders/${id}`);
+        console.log("Fetch order response:", response.data);
 
         if (response.data.status === "success") {
           setOrderData(response.data.data);
@@ -489,7 +505,8 @@ export default function OrderView() {
   const order = useMemo<TransformedOrder | null>(() => {
     if (!orderData) return null;
 
-    const totalAmount =
+    // Calculate subtotal from items
+    const subtotal =
       orderData.items?.reduce((sum, item) => {
         const price =
           typeof item.order_price === "string"
@@ -503,6 +520,16 @@ export default function OrderView() {
 
         return sum + price * quantity;
       }, 0) || 0;
+
+    // Get delivery charge from API response
+    const deliveryCharge = orderData.delivery_charge
+      ? parseFloat(orderData.delivery_charge)
+      : 0;
+
+    // Use grand_total from API if available, otherwise calculate
+    const totalAmount = orderData.grand_total
+      ? parseFloat(orderData.grand_total)
+      : subtotal + deliveryCharge;
 
     const shippingAddress = orderData.address
       ? {
@@ -558,6 +585,8 @@ export default function OrderView() {
       phone: orderData.customer?.ph_number || "N/A",
       date: new Date(orderData.order_date).toLocaleDateString(),
       items: orderData.items?.length || 0,
+      subtotal,
+      deliveryCharge,
       totalAmount,
       paymentMethod: "Card",
       paymentStatus: orderData.payment_status || "pending",
@@ -772,7 +801,7 @@ export default function OrderView() {
 
       <Separator />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <div className="rounded-lg border bg-card p-6">
           <div className="flex items-center justify-between">
             <div className="space-y-1">
@@ -805,14 +834,12 @@ export default function OrderView() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Total Amount
+                Subtotal
               </p>
-              <p className="text-xl font-bold">
-                ${order.totalAmount.toFixed(2)}
-              </p>
+              <p className="text-xl font-bold">${order.subtotal.toFixed(2)}</p>
             </div>
-            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
-              <CreditCard className="h-5 w-5" />
+            <div className="rounded-lg bg-purple-100 p-2 text-purple-700">
+              <ShoppingCart className="h-5 w-5" />
             </div>
           </div>
         </div>
@@ -821,12 +848,30 @@ export default function OrderView() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Items
+                Delivery Charge
               </p>
-              <p className="text-xl font-bold">{order.items}</p>
+              <p className="text-xl font-bold">
+                ${order.deliveryCharge.toFixed(2)}
+              </p>
             </div>
-            <div className="rounded-lg bg-purple-100 p-2 text-purple-700">
-              <PackageCheck className="h-5 w-5" />
+            <div className="rounded-lg bg-orange-100 p-2 text-orange-700">
+              <Truck className="h-5 w-5" />
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border bg-card p-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Total Amount
+              </p>
+              <p className="text-xl font-bold text-emerald-600">
+                ${order.totalAmount.toFixed(2)}
+              </p>
+            </div>
+            <div className="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+              <CreditCard className="h-5 w-5" />
             </div>
           </div>
         </div>
@@ -851,6 +896,28 @@ export default function OrderView() {
                 icon={<CalendarDays className="h-4 w-4" />}
                 label="Order Date"
                 value={order.date}
+              />
+
+              <InfoRow
+                icon={<ShoppingCart className="h-4 w-4" />}
+                label="Subtotal"
+                value={`$${order.subtotal.toFixed(2)}`}
+              />
+
+              <InfoRow
+                icon={<Truck className="h-4 w-4" />}
+                label="Delivery Charge"
+                value={`$${order.deliveryCharge.toFixed(2)}`}
+              />
+
+              <InfoRow
+                icon={<CreditCard className="h-4 w-4" />}
+                label="Total Amount"
+                value={
+                  <span className="font-bold text-emerald-600">
+                    ${order.totalAmount.toFixed(2)}
+                  </span>
+                }
               />
 
               <div className="flex items-start gap-3 border-b py-2 last:border-0">
@@ -897,8 +964,8 @@ export default function OrderView() {
 
               <InfoRow
                 icon={<PackageCheck className="h-4 w-4" />}
-                label="Total Amount"
-                value={`$${order.totalAmount.toFixed(2)}`}
+                label="Items Count"
+                value={order.items}
               />
             </div>
           </div>
@@ -943,19 +1010,17 @@ export default function OrderView() {
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Order Value
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-2xl font-bold text-emerald-600">
                     ${order.totalAmount.toFixed(2)}
                   </p>
                 </div>
               </div>
 
-              {/* <Separator /> */}
-
               {/* ROW 2 - Update Order Status & Refund in ONE ROW */}
               <div className="grid grid-cols-2 gap-2">
                 {/* Update Order Status Section */}
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
                     Update Order Status
                   </p>
                   <div className="flex items-center gap-2">
@@ -1009,54 +1074,57 @@ export default function OrderView() {
                   </div>
                 </div>
 
-                {/* Refund Section */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                      Process Refund
-                    </p>
-                    {order.paymentStatus === 'refunded' && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
-                        <CheckCircle className="h-3 w-3" />
-                        Refunded
-                      </span>
+                {/* Refund Section - HIDE WHEN ORDER STATUS IS DELIVERED */}
+                {normalizeStatus(order.orderStatus) !== "delivered" && (
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                        Process Refund
+                      </p>
+                      {order.paymentStatus === "refunded" && (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                          <CheckCircle className="h-3 w-3" />
+                          Refunded
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Refund Button - Only for paid orders not refunded */}
+                    {order.paymentStatus === "paid" && (
+                      <Button
+                        variant="outline"
+                        className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                        onClick={() => setShowRefundModal(true)}
+                      >
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Process Refund
+                      </Button>
                     )}
-                  </div>
 
-                  {/* Refund Button - Only for paid orders not refunded */}
-                  {order.paymentStatus === 'paid' && (
-                    <Button
-                      variant="outline"
-                      className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => setShowRefundModal(true)}
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Process Refund
-                    </Button>
-                  )}
-
-                  {/* Refund Info for refunded orders */}
-                  {order.paymentStatus === 'refunded' && (
-                    <div className="rounded-md bg-muted p-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Amount:</span>
-                        <span className="font-semibold">${order.totalAmount.toFixed(2)}</span>
+                    {/* Refund Info for refunded orders */}
+                    {order.paymentStatus === "refunded" && (
+                      <div className="rounded-md bg-muted p-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Amount:</span>
+                          <span className="font-semibold">
+                            ${order.totalAmount.toFixed(2)}
+                          </span>
+                        </div>                   
                       </div>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Refund processed successfully
-                      </p>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Message for non-refundable orders */}
-                  {order.paymentStatus !== 'paid' && order.paymentStatus !== 'refunded' && (
-                    <div className="rounded-md bg-amber-50 p-3">
-                      <p className="text-xs text-amber-700">
-                        Cannot refund - Payment status: {formatStatusLabel(order.paymentStatus)}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {/* Message for non-refundable orders */}
+                    {order.paymentStatus !== "paid" &&
+                      order.paymentStatus !== "refunded" && (
+                        <div className="rounded-md bg-amber-50 p-3">
+                          <p className="text-xs text-amber-700">
+                            Cannot refund - Payment status:{" "}
+                            {formatStatusLabel(order.paymentStatus)}
+                          </p>
+                        </div>
+                      )}
+                  </div>
+                )}
               </div>
             </div>
           </div>

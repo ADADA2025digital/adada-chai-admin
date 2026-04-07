@@ -45,6 +45,8 @@ import {
   Edit,
   ShoppingCart,
   FileText,
+  CreditCard,
+  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
@@ -59,6 +61,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
+// Rent Request Interface
 interface RentRequest {
   rent_id: number;
   customer_id: number;
@@ -66,6 +69,14 @@ interface RentRequest {
   query: string;
   rent_note: string | null;
   rent_status: "pending" | "approved" | "rejected" | "cancelled" | "completed";
+  payment_status?:
+    | "pending"
+    | "paid"
+    | "failed"
+    | "refunded"
+    | "unpaid"
+    | "cancelled";
+  is_refunded?: boolean;
   created_at: string;
   updated_at: string;
   customer?: {
@@ -100,14 +111,17 @@ type LoadingState = {
   fetching: boolean;
   refreshing: boolean;
   updatingStatus: boolean;
+  processingRefund: boolean;
 };
 
+// Alert interface
 interface AlertState {
   show: boolean;
   type: "success" | "error";
   message: string;
 }
 
+// Status badge component
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig = {
     pending: {
@@ -158,6 +172,7 @@ const StatusBadge = ({ status }: { status?: string }) => {
   );
 };
 
+// Product Image component
 const ProductImage = ({
   product,
   className,
@@ -223,6 +238,7 @@ export default function ProductRentLease() {
     fetching: true,
     refreshing: false,
     updatingStatus: false,
+    processingRefund: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [statistics, setStatistics] = useState({
@@ -234,6 +250,7 @@ export default function ProductRentLease() {
     completed: 0,
   });
 
+  // Alert state
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -242,17 +259,24 @@ export default function ProductRentLease() {
 
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [isStatusUpdateOpen, setIsStatusUpdateOpen] = useState(false);
+  const [isRefundOpen, setIsRefundOpen] = useState(false);
   const [viewRequest, setViewRequest] = useState<RentRequest | null>(null);
   const [statusUpdateRequest, setStatusUpdateRequest] =
     useState<RentRequest | null>(null);
+  const [refundRequest, setRefundRequest] = useState<RentRequest | null>(null);
   const [statusUpdateData, setStatusUpdateData] = useState({
     rent_status: "",
     rent_note: "",
+  });
+  const [refundData, setRefundData] = useState({
+    amount: "",
+    reason: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
   const requestsPerPage = 15;
 
+  // Show alert function with auto-dismiss
   const showAlert = useCallback(
     (type: "success" | "error", message: string) => {
       setAlert({ show: true, type, message });
@@ -263,6 +287,7 @@ export default function ProductRentLease() {
     [],
   );
 
+  // Fetch all rent requests from API
   const fetchRentRequests = useCallback(
     async (showLoading = true, showSuccessAlert = false) => {
       try {
@@ -272,10 +297,12 @@ export default function ProductRentLease() {
         setError(null);
 
         const response = await api.get("/admin/rent/requests");
+        console.log("✅ Rent requests API response:", response.data);
 
         if (response.data.status === "success") {
           let requests: RentRequest[] = [];
 
+          // Handle the response structure from your admin endpoint
           if (
             response.data.data &&
             Array.isArray(response.data.data.rent_requests)
@@ -290,9 +317,11 @@ export default function ProductRentLease() {
 
           setRentRequests(requests);
 
+          // Set statistics from API response
           if (response.data.statistics) {
             setStatistics(response.data.statistics);
           } else {
+            // Calculate statistics if not provided
             setStatistics({
               total: requests.length,
               pending: requests.filter((r) => r.rent_status === "pending")
@@ -343,6 +372,7 @@ export default function ProductRentLease() {
     [showAlert],
   );
 
+  // Update rent request status (Admin)
   const handleUpdateStatus = useCallback(async () => {
     if (!statusUpdateRequest || !statusUpdateData.rent_status) {
       console.error("❌ No request or status to update");
@@ -361,6 +391,7 @@ export default function ProductRentLease() {
       );
 
       if (response.data.status === "success") {
+        // Update local state
         setRentRequests((prev) =>
           prev.map((req) =>
             req.rent_id === statusUpdateRequest.rent_id
@@ -374,12 +405,14 @@ export default function ProductRentLease() {
           ),
         );
 
+        // Update statistics
         setStatistics((prevStats) => {
           const oldStatus = statusUpdateRequest.rent_status;
           const newStatus = statusUpdateData.rent_status;
 
           const updatedStats = { ...prevStats };
 
+          // Decrement old status count
           if (oldStatus === "pending")
             updatedStats.pending = Math.max(0, updatedStats.pending - 1);
           if (oldStatus === "approved")
@@ -391,6 +424,7 @@ export default function ProductRentLease() {
           if (oldStatus === "completed")
             updatedStats.completed = Math.max(0, updatedStats.completed - 1);
 
+          // Increment new status count
           if (newStatus === "pending") updatedStats.pending++;
           if (newStatus === "approved") updatedStats.approved++;
           if (newStatus === "rejected") updatedStats.rejected++;
@@ -420,6 +454,50 @@ export default function ProductRentLease() {
     }
   }, [statusUpdateRequest, statusUpdateData, showAlert]);
 
+  // Process refund for rejected/cancelled requests
+  const handleProcessRefund = useCallback(async () => {
+    if (!refundRequest) return;
+
+    setLoading((prev) => ({ ...prev, processingRefund: true }));
+
+    try {
+      const response = await api.post(`/admin/rent/${refundRequest.rent_id}/refund`, {
+        amount: parseFloat(refundData.amount),
+        reason: refundData.reason,
+      });
+
+      if (response.data.status === "success") {
+        // Update payment status and refund flag in local state
+        setRentRequests((prev) =>
+          prev.map((req) =>
+            req.rent_id === refundRequest.rent_id
+              ? {
+                  ...req,
+                  payment_status: "refunded" as const,
+                  is_refunded: true,
+                  updated_at: new Date().toISOString(),
+                }
+              : req,
+          ),
+        );
+
+        setIsRefundOpen(false);
+        setRefundRequest(null);
+        setRefundData({ amount: "", reason: "" });
+        showAlert("success", "Refund processed successfully!");
+      } else {
+        throw new Error("Failed to process refund");
+      }
+    } catch (err: any) {
+      console.error("❌ Error processing refund:", err);
+      const errorMessage =
+        err.response?.data?.message || err.message || "Failed to process refund";
+      showAlert("error", errorMessage);
+    } finally {
+      setLoading((prev) => ({ ...prev, processingRefund: false }));
+    }
+  }, [refundRequest, refundData, showAlert]);
+
   const formatDateTime = useCallback((date: Date | string): string => {
     if (!date) return "N/A";
     const dateObj = typeof date === "string" ? new Date(date) : date;
@@ -438,40 +516,35 @@ export default function ProductRentLease() {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
-    }).format(numAmount);
+    }).format(numAmount || 0);
   };
 
-  // Latest request first, but display table serial number as 1, 2, 3...
+  // Filter requests based on search
   const filteredRequests = useMemo(() => {
     const q = search.toLowerCase().trim();
 
-    let filtered = rentRequests;
+    if (!q) return rentRequests;
 
-    if (q) {
-      filtered = rentRequests.filter((request) => {
-        const customerName = request.customer?.full_name?.toLowerCase() || "";
-        const customerEmail = request.customer?.email?.toLowerCase() || "";
-        const customerPhone = request.customer?.ph_number?.toLowerCase() || "";
-        const productName = request.product?.product_name?.toLowerCase() || "";
-        const status = request.rent_status?.toLowerCase() || "";
-        const query = request.query?.toLowerCase() || "";
+    const filtered = rentRequests.filter((request) => {
+      const customerName = request.customer?.full_name?.toLowerCase() || "";
+      const customerEmail = request.customer?.email?.toLowerCase() || "";
+      const customerPhone = request.customer?.ph_number?.toLowerCase() || "";
+      const productName = request.product?.product_name?.toLowerCase() || "";
+      const status = request.rent_status?.toLowerCase() || "";
+      const query = request.query?.toLowerCase() || "";
 
-        return (
-          request.rent_id.toString().includes(q) ||
-          customerName.includes(q) ||
-          customerEmail.includes(q) ||
-          customerPhone.includes(q) ||
-          productName.includes(q) ||
-          status.includes(q) ||
-          query.includes(q)
-        );
-      });
-    }
+      return (
+        request.rent_id.toString().includes(q) ||
+        customerName.includes(q) ||
+        customerEmail.includes(q) ||
+        customerPhone.includes(q) ||
+        productName.includes(q) ||
+        status.includes(q) ||
+        query.includes(q)
+      );
+    });
 
-    return [...filtered].sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
+    return filtered;
   }, [rentRequests, search]);
 
   const totalPages = Math.max(
@@ -495,6 +568,7 @@ export default function ProductRentLease() {
     }
   }, [currentPage, totalPages]);
 
+  // Initial fetch
   useEffect(() => {
     fetchRentRequests(true, false);
   }, [fetchRentRequests]);
@@ -521,6 +595,15 @@ export default function ProductRentLease() {
     setIsStatusUpdateOpen(true);
   };
 
+  const handleRefundClick = (request: RentRequest) => {
+    setRefundRequest(request);
+    setRefundData({
+      amount: request.product?.sell_price || "0",
+      reason: "",
+    });
+    setIsRefundOpen(true);
+  };
+
   const handlePageChange = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
@@ -537,6 +620,7 @@ export default function ProductRentLease() {
         </div>
         <Separator />
 
+        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
@@ -565,6 +649,7 @@ export default function ProductRentLease() {
 
   return (
     <div className="space-y-6 p-6">
+      {/* Alert Notification */}
       {alert.show && (
         <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
           <Alert variant={alert.type === "success" ? "default" : "destructive"}>
@@ -584,6 +669,7 @@ export default function ProductRentLease() {
         </div>
       )}
 
+      {/* Header Section */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -636,6 +722,7 @@ export default function ProductRentLease() {
         </div>
       )}
 
+      {/* Statistics Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
@@ -720,6 +807,7 @@ export default function ProductRentLease() {
         </Card>
       </div>
 
+      {/* Rent Requests Table */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
@@ -738,7 +826,6 @@ export default function ProductRentLease() {
             />
           </div>
         </CardHeader>
-
         <CardContent>
           <div className="overflow-x-auto rounded-xl border">
             <Table>
@@ -754,15 +841,13 @@ export default function ProductRentLease() {
                   <TableHead className="text-center">Actions</TableHead>
                 </TableRow>
               </TableHeader>
-
               <TableBody>
                 {paginatedRequests.length > 0 ? (
-                  paginatedRequests.map((request, index) => (
+                  paginatedRequests.map((request) => (
                     <TableRow key={request.rent_id} className="group">
                       <TableCell className="font-mono text-sm text-center">
-                        {(currentPage - 1) * requestsPerPage + index + 1}
+                        {request.rent_id}
                       </TableCell>
-
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <ProductImage
@@ -779,7 +864,7 @@ export default function ProductRentLease() {
                                   {formatCurrency(request.product.sell_price)}
                                 </span>
                               )}
-                              {request.product?.quantity !== undefined && (
+                              {request.product?.quantity && (
                                 <span className="text-xs text-muted-foreground">
                                   Qty: {request.product.quantity}
                                 </span>
@@ -793,14 +878,12 @@ export default function ProductRentLease() {
                           </div>
                         </div>
                       </TableCell>
-
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           <User className="h-4 w-4 text-muted-foreground" />
                           <span>{request.customer?.full_name || "N/A"}</span>
                         </div>
                       </TableCell>
-
                       <TableCell>
                         {request.customer?.ph_number ? (
                           <div className="flex items-center gap-2">
@@ -810,22 +893,20 @@ export default function ProductRentLease() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">—</span>
+                          <span className="text-sm text-muted-foreground">
+                            —
+                          </span>
                         )}
                       </TableCell>
-
                       <TableCell className="font-medium">
                         {formatCurrency(request.product?.sell_price || 0)}
                       </TableCell>
-
                       <TableCell>
                         <StatusBadge status={request.rent_status} />
                       </TableCell>
-
                       <TableCell className="text-sm">
                         {formatDateTime(request.created_at)}
                       </TableCell>
-
                       <TableCell>
                         <div className="flex items-center justify-center gap-2">
                           <Button
@@ -836,7 +917,6 @@ export default function ProductRentLease() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-
                           <Button
                             variant="outline"
                             size="icon"
@@ -846,6 +926,20 @@ export default function ProductRentLease() {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
+                          {/* Refund button - only for rejected or cancelled statuses that haven't been refunded yet */}
+                          {(request.rent_status === "rejected" || request.rent_status === "cancelled") && 
+                           request.payment_status !== "refunded" && 
+                           !request.is_refunded && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRefundClick(request)}
+                              title="Process Refund"
+                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                            >
+                              <DollarSign className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -894,7 +988,6 @@ export default function ProductRentLease() {
                 <span className="font-medium">{filteredRequests.length}</span>{" "}
                 requests
               </p>
-
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
@@ -905,17 +998,13 @@ export default function ProductRentLease() {
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
                 </Button>
-
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                   let page = index + 1;
-
                   if (totalPages > 5 && currentPage > 3) {
                     page = currentPage - 2 + index;
                     if (page > totalPages) return null;
                   }
-
                   if (page > totalPages) return null;
-
                   return (
                     <Button
                       key={page}
@@ -928,7 +1017,6 @@ export default function ProductRentLease() {
                     </Button>
                   );
                 })}
-
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2">...</span>
@@ -942,7 +1030,6 @@ export default function ProductRentLease() {
                     </Button>
                   </>
                 )}
-
                 <Button
                   variant="outline"
                   size="sm"
@@ -958,6 +1045,7 @@ export default function ProductRentLease() {
         </CardContent>
       </Card>
 
+      {/* View Details Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
         <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
           <DialogHeader>
@@ -970,18 +1058,17 @@ export default function ProductRentLease() {
           {viewRequest && (
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
+                {/* Product Information Section */}
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <Package className="h-4 w-4" />
                     Product Information
                   </h3>
-
                   <div className="flex gap-6">
                     <ProductImage
                       product={viewRequest.product}
                       className="h-32 w-32 rounded-lg"
                     />
-
                     <div className="flex-1 space-y-2">
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -992,7 +1079,6 @@ export default function ProductRentLease() {
                             {viewRequest.product?.product_name || "N/A"}
                           </p>
                         </div>
-
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             Price
@@ -1003,7 +1089,6 @@ export default function ProductRentLease() {
                             )}
                           </p>
                         </div>
-
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             Quantity Available
@@ -1012,7 +1097,6 @@ export default function ProductRentLease() {
                             {viewRequest.product?.quantity || "N/A"}
                           </p>
                         </div>
-
                         <div>
                           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                             SKU
@@ -1024,7 +1108,6 @@ export default function ProductRentLease() {
                       </div>
                     </div>
                   </div>
-
                   {viewRequest.product?.description && (
                     <div className="mt-4 pt-4 border-t">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
@@ -1041,12 +1124,12 @@ export default function ProductRentLease() {
                   )}
                 </div>
 
+                {/* Customer Information Section */}
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Customer Information
                   </h3>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1056,7 +1139,6 @@ export default function ProductRentLease() {
                         {viewRequest.customer?.full_name || "N/A"}
                       </p>
                     </div>
-
                     <div className="space-y-1">
                       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                         Email Address
@@ -1066,7 +1148,6 @@ export default function ProductRentLease() {
                         {viewRequest.customer?.email || "N/A"}
                       </p>
                     </div>
-
                     {viewRequest.customer?.ph_number && (
                       <div className="space-y-1">
                         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1082,12 +1163,12 @@ export default function ProductRentLease() {
                 </div>
               </div>
 
+              {/* Rental Details Section */}
               <div className="rounded-lg border bg-card p-6">
                 <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
                   Rental Details
                 </h3>
-
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1097,7 +1178,6 @@ export default function ProductRentLease() {
                       {formatCurrency(viewRequest.product?.sell_price || 0)}
                     </p>
                   </div>
-
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Request Date
@@ -1106,7 +1186,6 @@ export default function ProductRentLease() {
                       {formatDateTime(viewRequest.created_at)}
                     </p>
                   </div>
-
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Last Updated
@@ -1115,38 +1194,48 @@ export default function ProductRentLease() {
                       {formatDateTime(viewRequest.updated_at)}
                     </p>
                   </div>
-
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Request Status
                     </p>
                     <div className="flex items-center gap-4">
                       <StatusBadge status={viewRequest.rent_status} />
-                      {viewRequest.rent_note && (
-                        <p className="text-sm text-muted-foreground">
-                          Note: {viewRequest.rent_note}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-x-8 gap-y-4 mt-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Customer Query
-                    </p>
-                    <p className="text-sm font-medium text-primary">
-                      {viewRequest.query || "N/A"}
-                    </p>
+                {(viewRequest.rent_note || viewRequest.query) && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mt-4">
+                    {viewRequest.query && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Customer Query
+                        </p>
+                        <p className="text-sm font-medium text-primary">
+                          {viewRequest.query}
+                        </p>
+                      </div>
+                    )}
+
+                    {viewRequest.rent_note && (
+                      <div className="space-y-1">
+                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                          Admin Note
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {viewRequest.rent_note}
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* Status Update Modal */}
       <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
@@ -1179,6 +1268,7 @@ export default function ProductRentLease() {
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="approved">Approved</SelectItem>
                     <SelectItem value="rejected">Rejected</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
                   </SelectContent>
                 </Select>
@@ -1212,7 +1302,6 @@ export default function ProductRentLease() {
                 >
                   Cancel
                 </Button>
-
                 <Button
                   type="button"
                   onClick={handleUpdateStatus}
@@ -1225,6 +1314,108 @@ export default function ProductRentLease() {
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   )}
                   Update Status
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Refund Modal */}
+      <Dialog open={isRefundOpen} onOpenChange={setIsRefundOpen}>
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-orange-600" />
+              Process Refund
+            </DialogTitle>
+            <DialogDescription>
+              Process a refund for this cancelled/rejected rental request.
+            </DialogDescription>
+          </DialogHeader>
+
+          {refundRequest && (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-muted/50 p-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Request ID:</span>
+                  <span className="font-mono font-medium">#{refundRequest.rent_id}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Product:</span>
+                  <span className="font-medium">{refundRequest.product?.product_name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Customer:</span>
+                  <span className="font-medium">{refundRequest.customer?.full_name}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Status:</span>
+                  <StatusBadge status={refundRequest.rent_status} />
+                </div>
+                <Separator className="my-2" />
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Original Amount:</span>
+                  <span className="font-semibold text-primary">
+                    {formatCurrency(refundRequest.product?.sell_price || 0)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="refund_amount">Refund Amount</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    $
+                  </span>
+                  <Input
+                    id="refund_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max={parseFloat(refundRequest.product?.sell_price || "0")}
+                    value={refundData.amount}
+                    onChange={(e) => setRefundData(prev => ({ ...prev, amount: e.target.value }))}
+                    className="pl-7"
+                    placeholder="0.00"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Maximum refund amount: {formatCurrency(refundRequest.product?.sell_price || 0)}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="refund_reason">Refund Reason (Optional)</Label>
+                <Textarea
+                  id="refund_reason"
+                  value={refundData.reason}
+                  onChange={(e) => setRefundData(prev => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Reason for refund..."
+                  rows={3}
+                />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsRefundOpen(false);
+                    setRefundRequest(null);
+                    setRefundData({ amount: "", reason: "" });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleProcessRefund}
+                  disabled={loading.processingRefund || !refundData.amount || parseFloat(refundData.amount) <= 0}
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {loading.processingRefund && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Process Refund
                 </Button>
               </DialogFooter>
             </div>

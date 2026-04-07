@@ -285,7 +285,7 @@ export default function Transactions() {
       setError(null);
 
       const response = await api.get("/transactions");
-
+console.log("API response:", response);
       let apiData: any[] = [];
 
       if (

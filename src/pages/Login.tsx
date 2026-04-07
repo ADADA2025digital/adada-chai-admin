@@ -66,7 +66,7 @@ export function LoginPage({
 
   return (
     <div className={cn("flex flex-col gap-6 w-full max-w-md", className)} {...props}>
-      <Card className="overflow-hidden p-0">
+      <Card className="overflow-hidden rounded-4xl">
         <CardContent className="p-0">
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <FieldGroup>
