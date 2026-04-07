@@ -31,6 +31,7 @@ import HelpCenterPage from "./pages/HelpCenterPage";
 import DiscountPage from "./pages/Discount";
 import ProductRentLease from "./pages/ProductRentLease";
 import DeliveryChargePage from "./pages/DeliveryCharges";
+import Settings from "./pages/Settings";
 
 // App.tsx - Update ProtectedRoute component
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -144,6 +145,18 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <HelpCenterPage />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+            {/* Settings */}
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <Settings />
             </AppLayout>
           </ProtectedRoute>
         }
