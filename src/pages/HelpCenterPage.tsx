@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Search,
   CircleHelp,
@@ -8,12 +9,11 @@ import {
   KeyRound,
   FileBarChart,
   Users,
-  Star,
-  ChevronRight,
-  ExternalLink,
   ShieldCheck,
-  FileText,
-  SeparatorHorizontal,
+  ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  X,
 } from "lucide-react";
 import {
   Card,
@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   Accordion,
@@ -40,6 +39,7 @@ const categories = [
       "Manage products, product details, pricing, and stock information easily.",
     icon: LayoutDashboard,
     articles: 10,
+    path: "/admin/products",
   },
   {
     title: "Categories & Discounts",
@@ -47,6 +47,7 @@ const categories = [
       "Create product categories and manage discount offers or promotions.",
     icon: Percent,
     articles: 8,
+    path: "/admin/category",
   },
   {
     title: "Orders, Rent & Lease",
@@ -54,6 +55,7 @@ const categories = [
       "Track and manage orders, rent requests, and lease activities in one place.",
     icon: ShoppingCart,
     articles: 12,
+    path: "/admin/orders",
   },
   {
     title: "Transactions & Reports",
@@ -61,6 +63,7 @@ const categories = [
       "View transactions and generate reports by day, month, year, or custom date.",
     icon: FileBarChart,
     articles: 9,
+    path: "/admin/report",
   },
   {
     title: "Customers & Enquiries",
@@ -68,6 +71,7 @@ const categories = [
       "Manage customer records and respond to enquiries efficiently.",
     icon: Users,
     articles: 7,
+    path: "/admin/contact-enquiries",
   },
   {
     title: "Reviews & Security",
@@ -75,13 +79,15 @@ const categories = [
       "Manage product reviews, portal settings, and account security options.",
     icon: ShieldCheck,
     articles: 11,
+    path: "/admin/customer-reviews",
   },
   {
     title: "Profile & Password",
     description:
-      " Use the Change Password option in your profile to update your password securely.",
+      "Use the Change Password option in your profile to update your password securely.",
     icon: KeyRound,
     articles: 11,
+    path: "/admin/profile",
   },
 ];
 
@@ -122,15 +128,161 @@ const faqs = [
   },
 ];
 
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function getSearchWords(query) {
+  return [...new Set(query.trim().toLowerCase().split(/\s+/).filter(Boolean))];
+}
+
+function HighlightText({ text, searchWords }) {
+  if (!searchWords.length) return <>{text}</>;
+
+  const regex = new RegExp(`(${searchWords.map(escapeRegExp).join("|")})`, "gi");
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, index) => {
+        const isMatch = searchWords.some(
+          (word) => word.toLowerCase() === part.toLowerCase(),
+        );
+
+        return isMatch ? (
+          <mark
+            key={index}
+            data-search-match="true"
+            className="rounded bg-yellow-300 px-1 text-black transition-colors dark:bg-yellow-400"
+          >
+            {part}
+          </mark>
+        ) : (
+          <span key={index}>{part}</span>
+        );
+      })}
+    </>
+  );
+}
+
 export default function HelpCenterPage() {
   const [query, setQuery] = useState("");
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [matchCount, setMatchCount] = useState(0);
+
+  const navigate = useNavigate();
+  const searchInputRef = useRef(null);
+
+  const searchWords = useMemo(() => getSearchWords(query), [query]);
 
   const filteredArticles = useMemo(() => {
     if (!query.trim()) return popularArticles;
 
     return popularArticles.filter((article) =>
-      article.toLowerCase().includes(query.toLowerCase()),
+      searchWords.some((word) => article.toLowerCase().includes(word)),
     );
+  }, [query, searchWords]);
+
+  const clearActiveHighlightStyles = () => {
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    matches.forEach((el) => {
+      el.classList.remove(
+        "bg-orange-400",
+        "dark:bg-orange-500",
+        "ring-2",
+        "ring-orange-500",
+      );
+      el.classList.add("bg-yellow-300", "dark:bg-yellow-400");
+    });
+  };
+
+  const scrollToMatch = (index) => {
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    if (!matches.length) return;
+
+    clearActiveHighlightStyles();
+
+    const normalizedIndex = ((index % matches.length) + matches.length) % matches.length;
+    const activeMatch = matches[normalizedIndex];
+
+    activeMatch.classList.remove("bg-yellow-300", "dark:bg-yellow-400");
+    activeMatch.classList.add(
+      "bg-orange-400",
+      "dark:bg-orange-500",
+      "ring-2",
+      "ring-orange-500",
+    );
+
+    activeMatch.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    setCurrentMatchIndex(normalizedIndex);
+    setMatchCount(matches.length);
+  };
+
+  const goToNextMatch = () => {
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    if (!matches.length) return;
+    scrollToMatch(currentMatchIndex + 1);
+  };
+
+  const goToPreviousMatch = () => {
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    if (!matches.length) return;
+    scrollToMatch(currentMatchIndex - 1);
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setCurrentMatchIndex(0);
+    setMatchCount(0);
+
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    matches.forEach((el) => {
+      el.classList.remove(
+        "bg-orange-400",
+        "dark:bg-orange-500",
+        "ring-2",
+        "ring-orange-500",
+      );
+      el.classList.remove("bg-yellow-300", "dark:bg-yellow-400");
+    });
+
+    searchInputRef.current?.focus();
+  };
+
+  const handleTagClick = (tag) => {
+    const currentWords = getSearchWords(query);
+    const tagWords = getSearchWords(tag);
+    const mergedWords = [...currentWords];
+
+    tagWords.forEach((word) => {
+      if (!mergedWords.includes(word)) {
+        mergedWords.push(word);
+      }
+    });
+
+    setQuery(mergedWords.join(" "));
+    searchInputRef.current?.focus();
+  };
+
+  useEffect(() => {
+    const matches = document.querySelectorAll('[data-search-match="true"]');
+    setMatchCount(matches.length);
+
+    if (!query.trim() || !matches.length) {
+      setCurrentMatchIndex(0);
+      clearActiveHighlightStyles();
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      scrollToMatch(0);
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [query]);
 
   return (
@@ -142,36 +294,81 @@ export default function HelpCenterPage() {
 
           <div className="relative z-10">
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Welcome to ADADA Chai Admin Portal
+              <HighlightText
+                text="Welcome to ADADA Chai Admin Portal"
+                searchWords={searchWords}
+              />
             </h1>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  This portal helps you manage products, categories, discounts,
-                  orders, rent, lease, transactions, and reports in one place.
-                  You can also manage customers, enquiries, and product reviews
-                  easily.
+                  <HighlightText
+                    text="This portal helps you manage products, categories, discounts, orders, rent, lease, transactions, and reports in one place. You can also manage customers, enquiries, and product reviews easily."
+                    searchWords={searchWords}
+                  />
                 </p>
 
                 <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground sm:text-base">
-                  Reports can be generated by day, month, year, or custom date
-                  range. The portal also supports dark mode, light mode, and
-                  system default settings for a better user experience.
+                  <HighlightText
+                    text="Reports can be generated by day, month, year, or custom date range. The portal also supports dark mode, light mode, and system default settings for a better user experience."
+                    searchWords={searchWords}
+                  />
                 </p>
               </div>
 
               <div>
                 <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                   <div className="relative w-full max-w-2xl">
-                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
                     <Input
+                      ref={searchInputRef}
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search portal help topics..."
-                      className="h-12 rounded-2xl border-border bg-background pl-10 shadow-sm"
+                      className="h-12 rounded-2xl border-border bg-background pl-10 pr-40 shadow-sm"
                     />
+
+                    {query.trim() && (
+                      <div className="absolute right-2 top-1/2 z-10 flex -translate-y-1/2 items-center overflow-hidden">
+                        <div className="px-3 text-xs font-medium text-muted-foreground">
+                          {matchCount > 0
+                            ? `${currentMatchIndex + 1}/${matchCount}`
+                            : "0/0"}
+                        </div>
+
+
+                        <button
+                          type="button"
+                          onClick={goToPreviousMatch}
+                          disabled={!matchCount}
+                          className="flex h-8 w-8 items-center justify-center text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+                        >
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={goToNextMatch}
+                          disabled={!matchCount}
+                          className="flex h-8 w-8 items-center justify-center text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+                        >
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </button>
+
+
+                        <button
+                          type="button"
+                          onClick={clearSearch}
+                          className="flex h-8 w-8 items-center justify-center text-muted-foreground transition hover:bg-muted"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )}
                   </div>
+
                   <Button className="h-12 rounded-2xl px-6">Search</Button>
                 </div>
 
@@ -189,11 +386,37 @@ export default function HelpCenterPage() {
                       variant="outline"
                       size="sm"
                       className="rounded-full"
+                      onClick={() => handleTagClick(tag)}
                     >
-                      {tag}
+                      <HighlightText text={tag} searchWords={searchWords} />
                     </Button>
                   ))}
                 </div>
+
+                {query.trim() && (
+                  <div className="mt-4 space-y-2">
+                    {filteredArticles.length > 0 ? (
+                      filteredArticles.map((article) => (
+                        <p
+                          key={article}
+                          className="text-sm text-muted-foreground"
+                        >
+                          <HighlightText
+                            text={article}
+                            searchWords={searchWords}
+                          />
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        <HighlightText
+                          text="No matching help topics found."
+                          searchWords={searchWords}
+                        />
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -215,17 +438,29 @@ export default function HelpCenterPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <h3 className="text-lg font-semibold">{item.title}</h3>
+                    <h3 className="text-lg font-semibold">
+                      <HighlightText
+                        text={item.title}
+                        searchWords={searchWords}
+                      />
+                    </h3>
                     <p className="text-sm text-muted-foreground">
-                      {item.description}
+                      <HighlightText
+                        text={item.description}
+                        searchWords={searchWords}
+                      />
                     </p>
                   </div>
 
                   <Button
                     variant="ghost"
-                    className="mt-auto justify-between rounded-2xl px-0 text-sm font-medium"
+                    onClick={() => navigate(item.path)}
+                    className="mt-auto justify-between rounded-2xl border px-0 text-sm font-medium"
                   >
-                    View details
+                    <HighlightText
+                      text="View Details"
+                      searchWords={searchWords}
+                    />
                     <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
                   </Button>
                 </CardContent>
@@ -239,10 +474,16 @@ export default function HelpCenterPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <CircleHelp className="h-5 w-5" />
-                Frequently asked questions
+                <HighlightText
+                  text="Frequently asked questions"
+                  searchWords={searchWords}
+                />
               </CardTitle>
               <CardDescription>
-                Quick answers to common questions about the admin portal.
+                <HighlightText
+                  text="Quick answers to common questions about the admin portal."
+                  searchWords={searchWords}
+                />
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -250,10 +491,16 @@ export default function HelpCenterPage() {
                 {faqs.map((faq, index) => (
                   <AccordionItem key={faq.question} value={`item-${index}`}>
                     <AccordionTrigger className="text-left text-sm font-medium">
-                      {faq.question}
+                      <HighlightText
+                        text={faq.question}
+                        searchWords={searchWords}
+                      />
                     </AccordionTrigger>
                     <AccordionContent className="text-sm leading-6 text-muted-foreground">
-                      {faq.answer}
+                      <HighlightText
+                        text={faq.answer}
+                        searchWords={searchWords}
+                      />
                     </AccordionContent>
                   </AccordionItem>
                 ))}
@@ -266,15 +513,27 @@ export default function HelpCenterPage() {
           <Card className="rounded-3xl border-border bg-muted/30">
             <CardContent className="flex flex-col gap-5 p-6 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h3 className="text-xl font-semibold">Need more help?</h3>
+                <h3 className="text-xl font-semibold">
+                  <HighlightText
+                    text="Need more help?"
+                    searchWords={searchWords}
+                  />
+                </h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Contact the support team for help with reports, transactions,
-                  settings, or account access.
+                  <HighlightText
+                    text="Contact the support team for help with reports, transactions, settings, or account access."
+                    searchWords={searchWords}
+                  />
                 </p>
               </div>
 
               <div className="flex flex-col gap-3 sm:flex-row">
-                <Button className="rounded-2xl px-6">Contact Support</Button>
+                <Button className="rounded-2xl px-6">
+                  <HighlightText
+                    text="Contact Support"
+                    searchWords={searchWords}
+                  />
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -284,8 +543,10 @@ export default function HelpCenterPage() {
 
         <section className="pb-4">
           <p className="text-center text-sm text-muted-foreground">
-            ADADA Chai Admin Portal • Help & Support • Reports • Security •
-            Profile Settings
+            <HighlightText
+              text="ADADA Chai Admin Portal • Help & Support • Reports • Security • Profile Settings"
+              searchWords={searchWords}
+            />
           </p>
         </section>
       </div>
