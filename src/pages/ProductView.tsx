@@ -78,10 +78,10 @@ type ProductSEO = {
 type ProductDimension = {
   pd_id?: number;
   product_id?: number;
-  height?: number; // cm
-  weight?: number; // kg
-  length?: number; // cm
-  width?: number; // cm
+  height?: number;
+  weight?: number;
+  length?: number;
+  width?: number;
   created_at?: string;
   updated_at?: string;
 };
@@ -188,7 +188,6 @@ type AlertState = {
   message: string;
 };
 
-// Product Form Fields Component
 interface ProductFormFieldsProps {
   formData: FormDataType;
   categories: Category[];
@@ -372,7 +371,7 @@ function ProductFormFields({
   };
 
   return (
-    <div className="grid gap-4 py-2 max-h-[70vh] overflow-y-auto px-1">
+    <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-1 py-2">
       <input
         ref={manualFileInputRef}
         type="file"
@@ -470,8 +469,7 @@ function ProductFormFields({
           </div>
         </div>
 
-        {/* Dimensions Section */}
-        <div className="grid gap-4 md:grid-cols-4 pt-2">
+        <div className="grid gap-4 pt-2 md:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="weight">
               Weight <span className="text-xs text-muted-foreground">(kg)</span>
@@ -494,7 +492,7 @@ function ProductFormFields({
                 value={formData.weight}
                 onChange={handleInputChange}
                 placeholder="Enter weight in kg"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -527,7 +525,7 @@ function ProductFormFields({
                 value={formData.height}
                 onChange={handleInputChange}
                 placeholder="Enter height in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -560,7 +558,7 @@ function ProductFormFields({
                 value={formData.length}
                 onChange={handleInputChange}
                 placeholder="Enter length in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -593,7 +591,7 @@ function ProductFormFields({
                 value={formData.width}
                 onChange={handleInputChange}
                 placeholder="Enter width in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -711,7 +709,6 @@ function ProductFormFields({
           </div>
         </div>
 
-        {/* Description and Specification with CKEditor */}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="grid gap-2">
             <Label htmlFor="description">Description *</Label>
@@ -779,7 +776,6 @@ function ProductFormFields({
         </div>
       </div>
 
-      {/* Multi Asset Upload Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Product Assets</h3>
         <p className="text-sm text-muted-foreground">
@@ -817,7 +813,7 @@ function ProductFormFields({
           </div>
 
           <div className="md:col-span-8">
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label className="text-sm font-medium">Uploaded Assets</Label>
               <Button
                 type="button"
@@ -825,13 +821,14 @@ function ProductFormFields({
                 size="sm"
                 onClick={handleAddFileManually}
                 disabled={isSubmitting}
+                className="w-full sm:w-auto"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add File
               </Button>
             </div>
 
-            <div className="h-[200px] space-y-3 overflow-y-auto pr-2">
+            <div className="h-[220px] space-y-3 overflow-y-auto pr-2">
               {assets.length === 0 ? (
                 <div className="flex flex-col items-center justify-center rounded-lg border bg-muted/10 p-8 text-center">
                   <File className="mb-2 h-8 w-8 text-muted-foreground" />
@@ -846,9 +843,9 @@ function ProductFormFields({
                 assets.map((asset, index) => (
                   <div
                     key={asset.id}
-                    className="flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
+                    className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
                   >
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
                       <div className="flex-shrink-0">
                         {asset.type === "image" ? (
                           asset.preview || asset.existingUrl ? (
@@ -881,7 +878,7 @@ function ProductFormFields({
                             asset.existingUrl?.split("/").pop() ||
                             `${asset.type} asset`}
                         </p>
-                        <div className="mt-0.5 flex items-center gap-2">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
                           <span className="text-xs capitalize text-muted-foreground">
                             {asset.type}
                           </span>
@@ -904,7 +901,7 @@ function ProductFormFields({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="ml-2 h-8 w-8 flex-shrink-0 hover:text-destructive"
+                      className="h-8 w-8 flex-shrink-0 hover:text-destructive"
                       onClick={() =>
                         handleRemoveAsset(
                           index,
@@ -929,7 +926,6 @@ function ProductFormFields({
         </div>
       </div>
 
-      {/* SEO Section */}
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">SEO Settings</h3>
 
@@ -1457,7 +1453,7 @@ export default function ProductView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <div className="text-center">
           <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
           <p className="mt-4 text-muted-foreground">Loading...</p>
@@ -1468,14 +1464,14 @@ export default function ProductView() {
 
   if (error || !product) {
     return (
-      <div className="p-6">
-        <div className="rounded-xl border bg-card p-8 text-center">
+      <div className="px-3 py-4 sm:p-6">
+        <div className="rounded-xl border bg-card p-6 text-center sm:p-8">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-destructive" />
           <h2 className="text-xl font-semibold">Product not found</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {error || "The requested product could not be found."}
           </p>
-          <Button className="mt-4" onClick={() => navigate("/admin/products")}>
+          <Button className="mt-4 w-full sm:w-auto" onClick={() => navigate("/admin/products")}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Products
           </Button>
@@ -1512,10 +1508,9 @@ export default function ProductView() {
     product.dimensions?.width != null;
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Alert Toast */}
+    <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-50 w-[calc(100%-2rem)] max-w-sm duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type === "success" ? "default" : "destructive"}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -1533,9 +1528,9 @@ export default function ProductView() {
       )}
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="break-words text-2xl font-bold tracking-tight">
             {product.product_name}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -1543,18 +1538,18 @@ export default function ProductView() {
           </p>
         </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleEditClick}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
+          <Button variant="outline" onClick={handleEditClick} className="w-full sm:w-auto">
             <Pencil className="mr-2 h-4 w-4" />
             Edit
           </Button>
-          <Button variant="outline" onClick={fetchProduct} disabled={loading}>
+          <Button variant="outline" onClick={fetchProduct} disabled={loading} className="w-full sm:w-auto">
             <RefreshCw
               className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`}
             />
             Refresh
           </Button>
-          <Button variant="outline" onClick={() => navigate("/admin/products")}>
+          <Button variant="outline" onClick={() => navigate("/admin/products")} className="w-full sm:w-auto">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Products
           </Button>
@@ -1563,9 +1558,9 @@ export default function ProductView() {
 
       {/* Product Details */}
       <div className="rounded-xl border bg-card">
-        <div className="border-b px-6 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
+        <div className="border-b px-4 py-4 sm:px-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h2 className="text-lg font-semibold">Product Details</h2>
               <p className="text-sm text-muted-foreground">
                 All important product information in one place.
@@ -1598,9 +1593,8 @@ export default function ProductView() {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="space-y-6">
-            {/* Quick Stats */}
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-lg border bg-muted/30 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1648,13 +1642,12 @@ export default function ProductView() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Category
                 </p>
-                <p className="mt-1 text-sm font-semibold">
+                <p className="mt-1 break-words text-sm font-semibold">
                   {product.category?.category_name || "N/A"}
                 </p>
               </div>
             </div>
 
-            {/* Dimensions Section */}
             {hasDimensions && (
               <div className="rounded-xl border border-dashed p-4">
                 <div className="mb-4 flex items-center gap-2">
@@ -1662,7 +1655,7 @@ export default function ProductView() {
                   <h3 className="text-sm font-semibold">Product Dimensions</h3>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {product.dimensions?.weight != null && (
                     <div className="rounded-lg border bg-muted/20 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1710,13 +1703,12 @@ export default function ProductView() {
               </div>
             )}
 
-            {/* Main Data */}
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Product Name
                 </p>
-                <p className="mt-1 text-sm font-medium">
+                <p className="mt-1 break-words text-sm font-medium">
                   {product.product_name}
                 </p>
               </div>
@@ -1725,14 +1717,16 @@ export default function ProductView() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   SKU
                 </p>
-                <p className="mt-1 font-mono text-sm">{product.sku || "N/A"}</p>
+                <p className="mt-1 break-words font-mono text-sm">
+                  {product.sku || "N/A"}
+                </p>
               </div>
 
               <div className="rounded-lg border p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Supplier SKU
                 </p>
-                <p className="mt-1 font-mono text-sm">
+                <p className="mt-1 break-words font-mono text-sm">
                   {product.supplier_sku || "N/A"}
                 </p>
               </div>
@@ -1764,7 +1758,7 @@ export default function ProductView() {
                 </p>
               </div>
 
-              <div className="rounded-lg border p-4 md:col-span-2 xl:col-span-2">
+              <div className="rounded-lg border p-4 sm:col-span-2 xl:col-span-2">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Updated At
                 </p>
@@ -1774,7 +1768,6 @@ export default function ProductView() {
               </div>
             </div>
 
-            {/* Discount */}
             {(discountPercentage > 0 ||
               product.discount?.start_date ||
               product.discount?.end_date) && (
@@ -1784,7 +1777,7 @@ export default function ProductView() {
                   <h3 className="text-sm font-semibold">Discount Details</h3>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                   {discountedPrice && (
                     <div className="rounded-lg border bg-muted/20 p-4">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -1852,7 +1845,6 @@ export default function ProductView() {
               </div>
             )}
 
-            {/* Description and Specifications */}
             <div className="grid gap-6 md:grid-cols-2">
               {product.description && (
                 <div className="h-full rounded-lg border p-4">
@@ -1861,7 +1853,7 @@ export default function ProductView() {
                     <h3 className="text-sm font-semibold">Description</h3>
                   </div>
                   <div
-                    className="modal-scroll prose prose-sm max-h-[150px] max-w-none overflow-y-auto dark:prose-invert"
+                    className="modal-scroll prose prose-sm max-h-[180px] max-w-none overflow-y-auto break-words dark:prose-invert"
                     dangerouslySetInnerHTML={{ __html: product.description }}
                   />
                 </div>
@@ -1874,14 +1866,13 @@ export default function ProductView() {
                     <h3 className="text-sm font-semibold">Specifications</h3>
                   </div>
                   <div
-                    className="modal-scroll prose prose-sm max-h-[150px] max-w-none overflow-y-auto dark:prose-invert"
+                    className="modal-scroll prose prose-sm max-h-[180px] max-w-none overflow-y-auto break-words dark:prose-invert"
                     dangerouslySetInnerHTML={{ __html: product.specification }}
                   />
                 </div>
               )}
             </div>
 
-            {/* Stock Warning */}
             {quantity < 50 && quantity > 0 && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-3">
                 <div className="flex items-center gap-2 text-sm text-red-700">
@@ -1903,48 +1894,49 @@ export default function ProductView() {
         </div>
       </div>
 
-      {/* Tabs for Assets and SEO */}
+      {/* Tabs */}
       <Tabs defaultValue="assets" className="w-full">
         <div className="overflow-hidden rounded-xl border bg-card">
-          <div className="border-b px-4 pt-4">
-            <TabsList className="h-auto w-full justify-start gap-0 rounded-none bg-transparent p-0">
-              <TabsTrigger
-                value="assets"
-                className="
-                  relative -mb-px rounded-none border border-b-0 bg-transparent
-                  px-8 py-3 text-sm font-medium text-muted-foreground
-                  shadow-none
-                  data-[state=active]:border-border
-                  data-[state=active]:bg-card
-                  data-[state=active]:text-foreground
-                  data-[state=active]:shadow-none
-                  first:rounded-tl-md first:rounded-tr-md
-                "
-              >
-                Product Assets
-              </TabsTrigger>
+          <div className="border-b px-3 pt-3 sm:px-4 sm:pt-4">
+            <div className="overflow-x-auto">
+              <TabsList className="h-auto min-w-max justify-start gap-0 rounded-none bg-transparent p-0">
+                <TabsTrigger
+                  value="assets"
+                  className="
+                    relative -mb-px rounded-none border border-b-0 bg-transparent
+                    px-4 py-3 text-sm font-medium text-muted-foreground
+                    shadow-none
+                    data-[state=active]:border-border
+                    data-[state=active]:bg-card
+                    data-[state=active]:text-foreground
+                    data-[state=active]:shadow-none
+                    sm:px-8
+                  "
+                >
+                  Product Assets
+                </TabsTrigger>
 
-              <TabsTrigger
-                value="seo"
-                className="
-                  relative -mb-px ml-2 rounded-none rounded-tl-md rounded-tr-md
-                  border border-b-0 bg-transparent px-8 py-3
-                  text-sm font-medium text-muted-foreground
-                  shadow-none
-                  data-[state=active]:border-border
-                  data-[state=active]:bg-card
-                  data-[state=active]:text-foreground
-                  data-[state=active]:shadow-none
-                "
-              >
-                Product SEO Stats
-              </TabsTrigger>
-            </TabsList>
+                <TabsTrigger
+                  value="seo"
+                  className="
+                    relative -mb-px ml-2 rounded-none border border-b-0 bg-transparent
+                    px-4 py-3 text-sm font-medium text-muted-foreground
+                    shadow-none
+                    data-[state=active]:border-border
+                    data-[state=active]:bg-card
+                    data-[state=active]:text-foreground
+                    data-[state=active]:shadow-none
+                    sm:px-8
+                  "
+                >
+                  Product SEO Stats
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
-          <TabsContent value="assets" className="m-0 p-6">
+          <TabsContent value="assets" className="m-0 p-4 sm:p-6">
             <div className="grid gap-6 lg:grid-cols-2">
-              {/* LEFT SIDE - IMAGE ASSETS */}
               <div>
                 <div className="mb-4 flex items-center gap-2">
                   <ImageIcon className="h-4 w-4" />
@@ -1952,7 +1944,7 @@ export default function ProductView() {
                 </div>
 
                 {imageAssets.length > 0 ? (
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+                  <div className="grid gap-4 sm:grid-cols-2">
                     {imageAssets.map((asset, index) => (
                       <div
                         key={asset.asset_id}
@@ -2004,7 +1996,6 @@ export default function ProductView() {
                 )}
               </div>
 
-              {/* RIGHT SIDE - DOCUMENT ASSETS */}
               <div>
                 <div className="mb-4 flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -2059,8 +2050,8 @@ export default function ProductView() {
             </div>
           </TabsContent>
 
-          <TabsContent value="seo" className="m-0 space-y-6 p-6">
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <TabsContent value="seo" className="m-0 space-y-6 p-4 sm:p-6">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               <div className="rounded-lg border p-4">
                 <div className="mb-2 flex items-center gap-2">
                   <Tag className="h-4 w-4" />
@@ -2068,7 +2059,7 @@ export default function ProductView() {
                     Meta Title
                   </p>
                 </div>
-                <p className="text-sm font-medium">{metaTitle || "N/A"}</p>
+                <p className="break-words text-sm font-medium">{metaTitle || "N/A"}</p>
               </div>
 
               <div className="rounded-lg border p-4">
@@ -2078,7 +2069,7 @@ export default function ProductView() {
                     Meta Keywords
                   </p>
                 </div>
-                <p className="text-sm font-medium">{metaKeywords || "N/A"}</p>
+                <p className="break-words text-sm font-medium">{metaKeywords || "N/A"}</p>
               </div>
 
               <div className="rounded-lg border p-4">
@@ -2099,12 +2090,12 @@ export default function ProductView() {
                 <Info className="h-4 w-4" />
                 <h3 className="text-sm font-semibold">Meta Description</h3>
               </div>
-              <p className="text-sm leading-relaxed text-muted-foreground">
+              <p className="break-words text-sm leading-relaxed text-muted-foreground">
                 {metaDescription || "No meta description available."}
               </p>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-lg border bg-muted/20 p-4">
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   SEO Title Length
@@ -2141,7 +2132,7 @@ export default function ProductView() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Meta Robots
                 </p>
-                <p className="mt-1 text-lg font-semibold">
+                <p className="mt-1 break-words text-lg font-semibold">
                   {metaRobots || "N/A"}
                 </p>
               </div>
@@ -2158,7 +2149,7 @@ export default function ProductView() {
           if (!open) setValidationErrors({});
         }}
       >
-        <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
             <DialogDescription>
@@ -2183,15 +2174,20 @@ export default function ProductView() {
             handleSpecificationChange={handleSpecificationChange}
           />
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setIsEditOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdateProduct} disabled={isSubmitting}>
+            <Button
+              onClick={handleUpdateProduct}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}

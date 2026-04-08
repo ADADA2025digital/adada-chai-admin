@@ -102,10 +102,10 @@ type ProductSEO = {
 };
 
 type ProductDimension = {
-  height?: number; // cm
-  weight?: number; // kg
-  length?: number; // cm
-  width?: number; // cm
+  height?: number;
+  weight?: number;
+  length?: number;
+  width?: number;
 };
 
 type Product = {
@@ -225,7 +225,6 @@ const emptyNewDiscount: NewDiscountData = {
   end_date: "",
 };
 
-// Product Form Fields Component
 type ProductFormFieldsProps = {
   formData: FormDataType;
   categories: Category[];
@@ -283,13 +282,9 @@ function ProductFormFields({
   const manualFileInputRef = React.useRef<HTMLInputElement>(null);
 
   const getAssetTypeFromFile = (file: File): string => {
-    if (file.type.startsWith("image/")) {
-      return "image";
-    } else if (file.type.startsWith("video/")) {
-      return "video";
-    } else {
-      return "document";
-    }
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    return "document";
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -307,9 +302,7 @@ function ProductFormFields({
   const handleFiles = (files: File[]) => {
     files.forEach((file) => {
       if (file.size > 20 * 1024 * 1024) {
-        if (showNotification) {
-          showNotification("error", "File size must be less than 20MB");
-        }
+        showNotification?.("error", "File size must be less than 20MB");
         return;
       }
 
@@ -325,12 +318,10 @@ function ProductFormFields({
       ];
 
       if (!validTypes.includes(file.type)) {
-        if (showNotification) {
-          showNotification(
-            "error",
-            "File type not supported. Please upload JPG, PNG, WEBP, MP4, PDF, or DOCX files.",
-          );
-        }
+        showNotification?.(
+          "error",
+          "File type not supported. Please upload JPG, PNG, WEBP, MP4, PDF, or DOCX files.",
+        );
         return;
       }
 
@@ -344,7 +335,7 @@ function ProductFormFields({
             assets: [
               ...(prev.assets || []),
               {
-                id: Math.random().toString(36).substr(2, 9),
+                id: Math.random().toString(36).slice(2, 11),
                 file,
                 preview: reader.result as string,
                 type: assetType,
@@ -360,7 +351,7 @@ function ProductFormFields({
           assets: [
             ...(prev.assets || []),
             {
-              id: Math.random().toString(36).substr(2, 9),
+              id: Math.random().toString(36).slice(2, 11),
               file,
               preview: "",
               type: assetType,
@@ -374,25 +365,17 @@ function ProductFormFields({
 
   const handleManualFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-    if (manualFileInputRef.current) {
-      manualFileInputRef.current.value = "";
-    }
+    if (files.length > 0) handleFiles(files);
+    if (manualFileInputRef.current) manualFileInputRef.current.value = "";
   };
 
   const handleAddFileManually = () => {
-    if (manualFileInputRef.current) {
-      manualFileInputRef.current.click();
-    }
+    manualFileInputRef.current?.click();
   };
 
   const handleApplySelectedDiscount = async () => {
     if (!formData.selected_discount) {
-      if (showNotification) {
-        showNotification("error", "Please select a discount first");
-      }
+      showNotification?.("error", "Please select a discount first");
       return;
     }
 
@@ -401,9 +384,7 @@ function ProductFormFields({
     );
 
     if (!selectedDiscountObj) {
-      if (showNotification) {
-        showNotification("error", "Selected discount not found");
-      }
+      showNotification?.("error", "Selected discount not found");
       return;
     }
 
@@ -415,10 +396,7 @@ function ProductFormFields({
         discount_id: String(selectedDiscountObj.discount_id),
         selected_discount: String(selectedDiscountObj.discount_id),
       }));
-
-      if (showNotification) {
-        showNotification("success", "Discount applied successfully");
-      }
+      showNotification?.("success", "Discount applied successfully");
     }
   };
 
@@ -431,10 +409,7 @@ function ProductFormFields({
         discount_id: "",
         selected_discount: "",
       }));
-
-      if (showNotification) {
-        showNotification("success", "Discount removed");
-      }
+      showNotification?.("success", "Discount removed");
     }
   };
 
@@ -498,7 +473,7 @@ function ProductFormFields({
   };
 
   return (
-    <div className="grid gap-4 py-2 px-1">
+    <div className="grid gap-4 px-1 py-2">
       <input
         ref={manualFileInputRef}
         type="file"
@@ -513,7 +488,7 @@ function ProductFormFields({
           Basic Information
         </h3>
 
-        <div className="grid gap-4 md:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="product_name" className="text-foreground">
               Product Name <span className="text-destructive">*</span>
@@ -551,14 +526,14 @@ function ProductFormFields({
             >
               <SelectTrigger
                 className={cn(
-                  "w-full bg-background text-foreground border-input",
+                  "w-full border-input bg-background text-foreground",
                   validationErrors.c_id ? "border-destructive" : "",
                 )}
               >
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
               <SelectContent
-                className="bg-popover text-popover-foreground border-border shadow-lg"
+                className="border-border bg-popover text-popover-foreground shadow-lg"
                 position="popper"
                 sideOffset={5}
               >
@@ -566,7 +541,7 @@ function ProductFormFields({
                   <SelectItem
                     key={category.c_id}
                     value={String(category.c_id)}
-                    className="text-foreground hover:bg-accent focus:bg-accent cursor-pointer"
+                    className="cursor-pointer text-foreground hover:bg-accent focus:bg-accent"
                   >
                     {category.category_name}
                   </SelectItem>
@@ -615,7 +590,7 @@ function ProductFormFields({
               value={formData.supplier_sku}
               onChange={handleInputChange}
               placeholder="Enter supplier SKU"
-              className="bg-background text-foreground placeholder:text-muted-foreground border-input"
+              className="border-input bg-background text-foreground placeholder:text-muted-foreground"
               disabled={isSubmitting}
             />
             {validationErrors.supplier_sku && (
@@ -626,13 +601,11 @@ function ProductFormFields({
           </div>
         </div>
 
-        {/* Dimensions Section */}
-        <div className="grid gap-4 md:grid-cols-4 pt-2">
+        <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="weight" className="text-foreground">
               Weight <span className="text-xs text-muted-foreground">(kg)</span>
             </Label>
-
             <div
               className={cn(
                 "flex h-10 items-center rounded-md border bg-background",
@@ -651,17 +624,21 @@ function ProductFormFields({
                 value={formData.weight || ""}
                 onChange={handleInputChange}
                 placeholder="Enter weight in kg"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
+            {validationErrors.weight && (
+              <p className="text-sm text-destructive">
+                {validationErrors.weight[0]}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="height" className="text-foreground">
               Height <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
-
             <div
               className={cn(
                 "flex h-10 items-center rounded-md border bg-background",
@@ -680,17 +657,21 @@ function ProductFormFields({
                 value={formData.height || ""}
                 onChange={handleInputChange}
                 placeholder="Enter height in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
+            {validationErrors.height && (
+              <p className="text-sm text-destructive">
+                {validationErrors.height[0]}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="length" className="text-foreground">
               Length <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
-
             <div
               className={cn(
                 "flex h-10 items-center rounded-md border bg-background",
@@ -709,17 +690,21 @@ function ProductFormFields({
                 value={formData.length || ""}
                 onChange={handleInputChange}
                 placeholder="Enter length in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
+            {validationErrors.length && (
+              <p className="text-sm text-destructive">
+                {validationErrors.length[0]}
+              </p>
+            )}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="width" className="text-foreground">
               Width <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
-
             <div
               className={cn(
                 "flex h-10 items-center rounded-md border bg-background",
@@ -738,14 +723,19 @@ function ProductFormFields({
                 value={formData.width || ""}
                 onChange={handleInputChange}
                 placeholder="Enter width in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
+            {validationErrors.width && (
+              <p className="text-sm text-destructive">
+                {validationErrors.width[0]}
+              </p>
+            )}
           </div>
         </div>
 
-        <div className="grid items-start gap-4 md:grid-cols-4">
+        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid gap-2">
             <Label htmlFor="buy_price" className="text-foreground">
               Buy Price <span className="text-destructive">*</span>
@@ -770,7 +760,7 @@ function ProductFormFields({
                 onChange={handleInputChange}
                 placeholder="Enter buy price"
                 disabled={isSubmitting}
-                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
             <div className="min-h-[20px]">
@@ -806,7 +796,7 @@ function ProductFormFields({
                 onChange={handleInputChange}
                 placeholder="Enter sell price"
                 disabled={isSubmitting}
-                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm outline-none placeholder:text-muted-foreground text-foreground"
+                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
             <div className="min-h-[20px]">
@@ -832,7 +822,7 @@ function ProductFormFields({
               onChange={handleInputChange}
               placeholder="Enter quantity"
               className={cn(
-                "h-10 bg-background text-foreground placeholder:text-muted-foreground border-input",
+                "h-10 border-input bg-background text-foreground placeholder:text-muted-foreground",
                 validationErrors.quantity ? "border-destructive" : "",
               )}
               disabled={isSubmitting}
@@ -859,28 +849,28 @@ function ProductFormFields({
             >
               <SelectTrigger
                 className={cn(
-                  "h-10 w-full bg-background text-foreground border-input",
+                  "h-10 w-full border-input bg-background text-foreground",
                   validationErrors.product_status ? "border-destructive" : "",
                 )}
               >
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
-              <SelectContent className="bg-popover text-popover-foreground border-border shadow-lg">
+              <SelectContent className="border-border bg-popover text-popover-foreground shadow-lg">
                 <SelectItem
                   value="Active"
-                  className="text-popover-foreground cursor-pointer data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                 >
                   Active
                 </SelectItem>
                 <SelectItem
                   value="Inactive"
-                  className="text-popover-foreground cursor-pointer data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                 >
                   Inactive
                 </SelectItem>
                 <SelectItem
                   value="Draft"
-                  className="text-popover-foreground cursor-pointer data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                 >
                   Draft
                 </SelectItem>
@@ -896,9 +886,9 @@ function ProductFormFields({
           </div>
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-border">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+        <div className="space-y-4 border-t border-border pt-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
               <Gift className="h-5 w-5" />
               Discount
             </h3>
@@ -909,6 +899,7 @@ function ProductFormFields({
                 size="sm"
                 onClick={handleRemoveSelectedDiscount}
                 disabled={isSubmitting}
+                className="w-full sm:w-auto"
               >
                 Remove Discount
               </Button>
@@ -927,9 +918,7 @@ function ProductFormFields({
                 value={formData.selected_discount || formData.discount_id || ""}
                 onValueChange={(value) => {
                   if (value === "create_new") {
-                    if (onOpenCreateDiscount) {
-                      onOpenCreateDiscount();
-                    }
+                    onOpenCreateDiscount?.();
                   } else {
                     setFormData((prev) => ({
                       ...prev,
@@ -939,10 +928,10 @@ function ProductFormFields({
                 }}
                 disabled={isSubmitting}
               >
-                <SelectTrigger className="w-full bg-background text-foreground border-input">
+                <SelectTrigger className="w-full border-input bg-background text-foreground">
                   <SelectValue placeholder="Choose a discount" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover text-popover-foreground border-border shadow-lg max-h-[300px]">
+                <SelectContent className="max-h-[300px] border-border bg-popover text-popover-foreground shadow-lg">
                   {discountOptions.map((discount) => (
                     <SelectItem
                       key={discount.value}
@@ -955,7 +944,7 @@ function ProductFormFields({
 
                   <SelectItem
                     value="create_new"
-                    className="text-popover-foreground font-medium data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
+                    className="font-medium text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
                   >
                     <span className="inline-flex items-center gap-2">
                       <PlusCircle className="h-4 w-4" />
@@ -980,8 +969,8 @@ function ProductFormFields({
           </div>
 
           {selectedDiscount && (
-            <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border">
-              <div className="grid gap-3 md:grid-cols-4">
+            <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Discount Name</p>
                   <p className="font-medium text-foreground">
@@ -1026,21 +1015,22 @@ function ProductFormFields({
           )}
         </div>
 
-        <div className="space-y-4 pt-4 border-t border-border">
+        <div className="space-y-4 border-t border-border pt-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2 text-foreground">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-foreground">
               <Tag className="h-5 w-5" />
               Product Details
             </h3>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
+
+          <div className="grid gap-4 lg:grid-cols-2">
             <div className="grid gap-2">
               <Label htmlFor="description" className="text-foreground">
                 Description <span className="text-destructive">*</span>
               </Label>
               <div
                 className={cn(
-                  "border rounded-md overflow-hidden ck-editor-custom",
+                  "ck-editor-custom overflow-hidden rounded-md border",
                   validationErrors.description
                     ? "border-destructive"
                     : "border-input",
@@ -1050,7 +1040,7 @@ function ProductFormFields({
                   editor={ClassicEditor}
                   config={editorConfiguration}
                   data={formData.description}
-                  onChange={(event, editor) => {
+                  onChange={(_, editor) => {
                     const data = editor.getData();
                     if (handleDescriptionChange) {
                       handleDescriptionChange(data);
@@ -1074,7 +1064,7 @@ function ProductFormFields({
               </Label>
               <div
                 className={cn(
-                  "border rounded-md overflow-hidden ck-editor-custom",
+                  "ck-editor-custom overflow-hidden rounded-md border",
                   validationErrors.specification
                     ? "border-destructive"
                     : "border-input",
@@ -1084,7 +1074,7 @@ function ProductFormFields({
                   editor={ClassicEditor}
                   config={editorConfiguration}
                   data={formData.specification}
-                  onChange={(event, editor) => {
+                  onChange={(_, editor) => {
                     const data = editor.getData();
                     if (handleSpecificationChange) {
                       handleSpecificationChange(data);
@@ -1105,7 +1095,7 @@ function ProductFormFields({
         </div>
       </div>
 
-      <div className="space-y-4 pt-4 border-t border-border">
+      <div className="space-y-4 border-t border-border pt-4">
         <h3 className="text-lg font-semibold text-foreground">
           Product Assets <span className="text-destructive">*</span>
         </h3>
@@ -1114,15 +1104,15 @@ function ProductFormFields({
           Supported formats: JPG, JPEG, PNG, WEBP, MP4, PDF, DOCX
         </p>
 
-        <div className="grid gap-6 md:grid-cols-12">
-          <div className="md:col-span-4">
+        <div className="grid gap-6 lg:grid-cols-12">
+          <div className="lg:col-span-4">
             <div
               onDragOver={handleDragOver}
               onDrop={handleDrop}
               className={cn(
-                "flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 min-h-[200px] transition-colors",
+                "flex min-h-[200px] flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition-colors",
                 !isSubmitting &&
-                  "hover:border-primary/50 hover:bg-muted/30 cursor-pointer",
+                  "cursor-pointer hover:border-primary/50 hover:bg-muted/30",
                 validationErrors.assets
                   ? "border-destructive"
                   : "border-muted-foreground/25 bg-background",
@@ -1133,21 +1123,21 @@ function ProductFormFields({
                 }
               }}
             >
-              <Upload className="h-10 w-10 text-muted-foreground mb-3" />
-              <p className="text-sm font-medium text-center text-foreground">
+              <Upload className="mb-3 h-10 w-10 text-muted-foreground" />
+              <p className="text-center text-sm font-medium text-foreground">
                 Drag & drop files here
               </p>
-              <p className="text-xs text-muted-foreground text-center mt-1">
+              <p className="mt-1 text-center text-xs text-muted-foreground">
                 or click to browse
               </p>
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="mt-2 text-center text-xs text-muted-foreground">
                 Maximum file size: 20MB
               </p>
             </div>
           </div>
 
-          <div className="md:col-span-8">
-            <div className="flex items-center justify-between mb-4">
+          <div className="lg:col-span-8">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label className="text-sm font-medium text-foreground">
                 Uploaded Assets
               </Label>
@@ -1157,20 +1147,21 @@ function ProductFormFields({
                 size="sm"
                 onClick={handleAddFileManually}
                 disabled={isSubmitting}
+                className="w-full sm:w-auto"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Add File
               </Button>
             </div>
 
-            <div className="space-y-3 h-[200px] overflow-y-auto pr-2">
+            <div className="h-[200px] space-y-3 overflow-y-auto pr-2">
               {assets.length === 0 ? (
-                <div className="flex flex-col items-center justify-center border rounded-lg p-8 text-center bg-muted/10">
-                  <File className="h-8 w-8 text-muted-foreground mb-2" />
+                <div className="flex flex-col items-center justify-center rounded-lg border bg-muted/10 p-8 text-center">
+                  <File className="mb-2 h-8 w-8 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground">
                     No assets uploaded yet
                   </p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="mt-1 text-xs text-muted-foreground">
                     Drag and drop files or click "Add File" to get started
                   </p>
                 </div>
@@ -1178,13 +1169,13 @@ function ProductFormFields({
                 assets.map((asset, index) => (
                   <div
                     key={asset.id}
-                    className="flex items-center justify-between p-3 border rounded-lg bg-card hover:bg-muted/5 transition-colors"
+                    className="flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
                   >
-                    <div className="flex items-center gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="shrink-0">
                         {asset.type === "image" ? (
                           asset.preview || asset.existingUrl ? (
-                            <div className="h-10 w-10 rounded-md overflow-hidden border bg-muted">
+                            <div className="h-10 w-10 overflow-hidden rounded-md border bg-muted">
                               <img
                                 src={asset.preview || asset.existingUrl}
                                 alt=""
@@ -1192,33 +1183,33 @@ function ProductFormFields({
                               />
                             </div>
                           ) : (
-                            <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                               <ImageIcon className="h-5 w-5 text-muted-foreground" />
                             </div>
                           )
                         ) : asset.type === "video" ? (
-                          <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                             <Video className="h-5 w-5 text-muted-foreground" />
                           </div>
                         ) : (
-                          <div className="h-10 w-10 rounded-md border bg-muted flex items-center justify-center">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted">
                             <File className="h-5 w-5 text-muted-foreground" />
                           </div>
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate text-foreground">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-foreground">
                           {asset.file?.name ||
                             asset.existingUrl?.split("/").pop() ||
                             `${asset.type} asset`}
                         </p>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-muted-foreground capitalize">
+                        <div className="mt-0.5 flex items-center gap-2">
+                          <span className="text-xs capitalize text-muted-foreground">
                             {asset.type}
                           </span>
                           {asset.isExisting && !asset.file && (
-                            <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
                               <CheckCircle className="h-3 w-3" />
                               Existing
                             </span>
@@ -1236,7 +1227,7 @@ function ProductFormFields({
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 ml-2 flex-shrink-0 hover:text-destructive"
+                      className="ml-2 h-8 w-8 shrink-0 hover:text-destructive"
                       onClick={() =>
                         handleRemoveAsset(
                           index,
@@ -1254,7 +1245,7 @@ function ProductFormFields({
             </div>
 
             {validationErrors.assets && (
-              <p className="text-sm text-destructive mt-2">
+              <p className="mt-2 text-sm text-destructive">
                 {validationErrors.assets[0]}
               </p>
             )}
@@ -1262,7 +1253,7 @@ function ProductFormFields({
         </div>
       </div>
 
-      <div className="space-y-4 border-t border-border">
+      <div className="space-y-4 border-t border-border pt-4">
         <h3 className="text-lg font-semibold text-foreground">SEO Settings</h3>
 
         <div className="grid gap-2">
@@ -1413,7 +1404,7 @@ export default function Products() {
   );
 
   const stripHtml = (html: string) => {
-    const tmp = document.createElement("DIV");
+    const tmp = document.createElement("div");
     tmp.innerHTML = html;
     return tmp.textContent || tmp.innerText || "";
   };
@@ -1674,9 +1665,8 @@ export default function Products() {
   }, [products]);
 
   const featuredProducts = React.useMemo(() => {
-    return products.filter((item) => {
-      return item.featured === true || item.featured === 1;
-    }).length;
+    return products.filter((item) => item.featured === true || item.featured === 1)
+      .length;
   }, [products]);
 
   const lowStockProducts = React.useMemo(() => {
@@ -1758,7 +1748,7 @@ export default function Products() {
       assets: [
         ...(prev.assets || []),
         {
-          id: Math.random().toString(36).substr(2, 9),
+          id: Math.random().toString(36).slice(2, 11),
           file: null,
           preview: "",
           type: "image",
@@ -1928,6 +1918,7 @@ export default function Products() {
         const assignedDiscount = discounts.find(
           (d) => d.discount_id === discountId,
         );
+
         if (assignedDiscount) {
           setFormData((prev) => ({
             ...prev,
@@ -2212,7 +2203,7 @@ export default function Products() {
     setEditProductId(product.product_id);
 
     const existingAssets: AssetItem[] = (product.assets || []).map((asset) => ({
-      id: Math.random().toString(36).substr(2, 9),
+      id: Math.random().toString(36).slice(2, 11),
       file: null,
       preview: "",
       type: asset.asset_type,
@@ -2479,34 +2470,37 @@ export default function Products() {
 
   if (loading && products.length === 0) {
     return (
-      <div className="space-y-6 p-6 bg-background">
+      <div className="space-y-4 bg-background px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
-          <div className="flex gap-3">
-            <div className="h-10 w-24 bg-muted animate-pulse rounded" />
-            <div className="h-10 w-24 bg-muted animate-pulse rounded" />
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <div className="h-10 w-full animate-pulse rounded bg-muted sm:w-24" />
+            <div className="h-10 w-full animate-pulse rounded bg-muted sm:w-24" />
           </div>
         </div>
+
         <Separator className="bg-border" />
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Card key={i} className="rounded-2xl shadow-sm bg-card">
+            <Card key={i} className="rounded-2xl bg-card shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
-        <div className="flex h-[60vh] items-center justify-center">
+
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -2516,7 +2510,7 @@ export default function Products() {
 
   if (error && products.length === 0) {
     return (
-      <div className="flex h-[60vh] items-center justify-center bg-background">
+      <div className="flex h-[50vh] items-center justify-center bg-background px-4">
         <div className="text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-destructive" />
           <p className="mt-2 text-sm text-destructive">{error}</p>
@@ -2529,12 +2523,12 @@ export default function Products() {
   }
 
   return (
-    <div className="space-y-6 p-6 relative bg-background min-h-screen">
+    <div className="relative min-h-screen space-y-4 bg-background px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="fixed top-16 right-6 z-50 w-[calc(100%-3rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert
             variant={alert.type === "success" ? "default" : "destructive"}
-            className="border shadow-lg bg-background"
+            className="border bg-background shadow-lg"
           >
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -2552,7 +2546,7 @@ export default function Products() {
       )}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             All Products
           </h1>
@@ -2560,25 +2554,29 @@ export default function Products() {
             Manage products, specifications, stock, and pricing.
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
             />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button onClick={() => setIsAddOpen(true)}>
+          <Button
+            onClick={() => setIsAddOpen(true)}
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Product
           </Button>
@@ -2587,10 +2585,10 @@ export default function Products() {
 
       <Separator className="bg-border" />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-card">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Total Products</p>
               <h3 className="mt-1 text-2xl font-bold text-foreground">
                 {totalProducts}
@@ -2602,54 +2600,52 @@ export default function Products() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-card">
+        <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Active Products</p>
               <h3 className="mt-1 text-2xl font-bold text-foreground">
                 {activeProducts}
               </h3>
             </div>
-            <div className="rounded-2xl bg-green-100 dark:bg-green-900/30 p-3">
+            <div className="rounded-2xl bg-green-100 p-3 dark:bg-green-900/30">
               <Boxes className="h-5 w-5 text-green-700 dark:text-green-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-card">
+        <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Featured Products</p>
               <h3 className="mt-1 text-2xl font-bold text-foreground">
                 {featuredProducts}
               </h3>
             </div>
-            <div className="rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 p-3">
+            <div className="rounded-2xl bg-yellow-100 p-3 dark:bg-yellow-900/30">
               <Star className="h-5 w-5 text-yellow-700 dark:text-yellow-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm hover:shadow-md transition-shadow bg-card">
+        <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Low Stock (&lt;50)
-              </p>
+            <div className="min-w-0">
+              <p className="text-sm text-muted-foreground">Low Stock (&lt;50)</p>
               <h3 className="mt-1 text-2xl font-bold text-foreground">
                 {lowStockProducts}
               </h3>
             </div>
-            <div className="rounded-2xl bg-red-100 dark:bg-red-900/30 p-3">
+            <div className="rounded-2xl bg-red-100 p-3 dark:bg-red-900/30">
               <CircleDollarSign className="h-5 w-5 text-red-700 dark:text-red-400" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="rounded-2xl shadow-sm bg-card">
+      <Card className="rounded-2xl bg-card shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle className="text-foreground">Product Listing</CardTitle>
             <CardDescription>
               View, add, edit, delete, and inspect all product records.
@@ -2660,7 +2656,7 @@ export default function Products() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search product..."
-              className="pl-10 bg-background text-foreground placeholder:text-muted-foreground border-input"
+              className="border-input bg-background pl-10 text-foreground placeholder:text-muted-foreground"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -2668,7 +2664,193 @@ export default function Products() {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border border-border">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedProducts.length > 0 ? (
+              paginatedProducts.map((product) => {
+                const discount = product.discount;
+                const discountedPrice = discount
+                  ? product.sell_price * (1 - discount.discount_percentage / 100)
+                  : null;
+
+                return (
+                  <div
+                    key={product.product_id}
+                    className="rounded-xl border border-border bg-card p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+                          {product.assets && product.assets[0]?.asset_url ? (
+                            <img
+                              src={product.assets[0].asset_url}
+                              alt={product.product_name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center">
+                              <Package className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground">
+                            ID #{product.product_id}
+                          </p>
+                          <p className="break-words font-medium text-foreground">
+                            {product.product_name}
+                          </p>
+                          <p className="mt-1 break-all text-xs text-muted-foreground">
+                            SKU: {product.sku}
+                          </p>
+                          {product.supplier_sku && (
+                            <p className="break-all text-xs text-muted-foreground">
+                              Sup: {product.supplier_sku}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleViewClick(product)}
+                          className="h-8 w-8"
+                          title="View product"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEditClick(product)}
+                          className="h-8 w-8"
+                          title="Edit product"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteClick(product)}
+                          className="h-8 w-8 hover:text-destructive"
+                          title="Delete product"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 rounded-lg bg-muted/40 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          Price
+                        </span>
+                        <div className="text-right">
+                          {discountedPrice ? (
+                            <>
+                              <p className="text-xs line-through text-muted-foreground">
+                                ${product.sell_price.toFixed(2)}
+                              </p>
+                              <p className="font-semibold text-green-600 dark:text-green-400">
+                                ${discountedPrice.toFixed(2)}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="font-semibold text-foreground">
+                              ${product.sell_price.toFixed(2)}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          Discount
+                        </span>
+                        <div className="text-right">
+                          {discount ? (
+                            <>
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                {discount.discount_percentage}% OFF
+                              </span>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {discount.discount_name}
+                              </p>
+                            </>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">
+                              —
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          Quantity
+                        </span>
+                        <span
+                          className={cn(
+                            "font-medium",
+                            product.quantity < 10 &&
+                              "text-red-600 dark:text-red-400",
+                            product.quantity < 50 &&
+                              product.quantity >= 10 &&
+                              "text-yellow-600 dark:text-yellow-400",
+                            product.quantity >= 50 && "text-foreground",
+                          )}
+                        >
+                          {product.quantity}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          Status
+                        </span>
+                        <span
+                          className={cn(
+                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                            product.product_status === "Active"
+                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                              : product.product_status === "Inactive"
+                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+                          )}
+                        >
+                          {product.product_status || "Active"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Package className="h-8 w-8 opacity-50" />
+                  <p>No products found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
             <Table>
               <TableHeader>
                 <TableRow className="border-border hover:bg-muted/50">
@@ -2704,7 +2886,7 @@ export default function Products() {
                         key={product.product_id}
                         className="border-border hover:bg-muted/50"
                       >
-                        <TableCell className="font-mono text-sm text-center text-foreground">
+                        <TableCell className="font-mono text-center text-sm text-foreground">
                           {product.product_id}
                         </TableCell>
                         <TableCell>
@@ -2716,7 +2898,7 @@ export default function Products() {
                                 className="h-full w-full object-cover"
                               />
                             ) : (
-                              <Package className="h-6 w-6 m-3 text-muted-foreground" />
+                              <Package className="m-3 h-6 w-6 text-muted-foreground" />
                             )}
                           </div>
                         </TableCell>
@@ -2733,7 +2915,7 @@ export default function Products() {
                         <TableCell>
                           {discountedPrice ? (
                             <div>
-                              <span className="line-through text-muted-foreground text-sm">
+                              <span className="text-sm text-muted-foreground line-through">
                                 ${product.sell_price.toFixed(2)}
                               </span>
                               <br />
@@ -2750,10 +2932,10 @@ export default function Products() {
                         <TableCell>
                           {discount ? (
                             <div>
-                              <span className="inline-flex items-center rounded-full bg-red-100 dark:bg-red-900/30 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
                                 {discount.discount_percentage}% OFF
                               </span>
-                              <p className="text-xs text-muted-foreground mt-1">
+                              <p className="mt-1 text-xs text-muted-foreground">
                                 {discount.discount_name}
                               </p>
                             </div>
@@ -2765,7 +2947,7 @@ export default function Products() {
                           <span
                             className={cn(
                               product.quantity < 10 &&
-                                "text-red-600 dark:text-red-400 font-semibold",
+                                "font-semibold text-red-600 dark:text-red-400",
                               product.quantity < 50 &&
                                 product.quantity >= 10 &&
                                 "text-yellow-600 dark:text-yellow-400",
@@ -2776,7 +2958,7 @@ export default function Products() {
                           </span>
                         </TableCell>
                         <TableCell>
-                          <code className="text-xs bg-muted px-2 py-1 rounded text-foreground">
+                          <code className="rounded bg-muted px-2 py-1 text-xs text-foreground">
                             {product.sku}
                           </code>
                         </TableCell>
@@ -2785,10 +2967,10 @@ export default function Products() {
                             className={cn(
                               "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
                               product.product_status === "Active"
-                                ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
                                 : product.product_status === "Inactive"
-                                  ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300"
-                                  : "bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-300",
+                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
                             )}
                           >
                             {product.product_status || "Active"}
@@ -2801,7 +2983,7 @@ export default function Products() {
                               size="icon"
                               onClick={() => handleViewClick(product)}
                               title="View product"
-                              className="hover:bg-muted hover:text-foreground"
+                              className="h-8 w-8"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -2811,7 +2993,7 @@ export default function Products() {
                               size="icon"
                               onClick={() => handleEditClick(product)}
                               title="Edit product"
-                              className="hover:bg-muted hover:text-foreground"
+                              className="h-8 w-8"
                             >
                               <Pencil className="h-4 w-4" />
                             </Button>
@@ -2821,7 +3003,7 @@ export default function Products() {
                               size="icon"
                               onClick={() => handleDeleteClick(product)}
                               title="Delete product"
-                              className="hover:bg-muted hover:text-red-600 hover:border-red-600"
+                              className="h-8 w-8 hover:border-red-600 hover:text-red-600"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -2877,7 +3059,7 @@ export default function Products() {
                 products
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -2908,6 +3090,7 @@ export default function Products() {
                     </Button>
                   );
                 })}
+
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2 text-muted-foreground">...</span>
@@ -2945,7 +3128,7 @@ export default function Products() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="modal-scroll sm:max-w-6xl overflow-y-auto max-h-[90vh] bg-background border-border">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border-border bg-background sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               Add New Product
@@ -2978,15 +3161,20 @@ export default function Products() {
             handleSpecificationChange={handleSpecificationChange}
           />
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setIsAddOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleAddProduct} disabled={isSubmitting}>
+            <Button
+              onClick={handleAddProduct}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -3004,7 +3192,7 @@ export default function Products() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="modal-scroll sm:max-w-6xl overflow-y-auto max-h-[90vh] bg-background border-border">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border-border bg-background sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle className="text-foreground">Edit Product</DialogTitle>
             <DialogDescription>
@@ -3015,7 +3203,7 @@ export default function Products() {
           </DialogHeader>
 
           {editProductId && (
-            <div className="text-xs text-muted-foreground mb-2 p-2 bg-muted rounded">
+            <div className="mb-2 rounded bg-muted p-2 text-xs text-muted-foreground">
               Editing Product ID: {editProductId}
             </div>
           )}
@@ -3044,15 +3232,20 @@ export default function Products() {
             handleSpecificationChange={handleSpecificationChange}
           />
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setIsEditOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleUpdateProduct} disabled={isSubmitting}>
+            <Button
+              onClick={handleUpdateProduct}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -3064,7 +3257,7 @@ export default function Products() {
 
       {/* Create New Discount Modal */}
       <Dialog open={isNewDiscountOpen} onOpenChange={setIsNewDiscountOpen}>
-        <DialogContent className="sm:max-w-xl bg-background border-border">
+        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl border-border bg-background sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Gift className="h-5 w-5" />
@@ -3090,7 +3283,7 @@ export default function Products() {
                     discount_name: e.target.value,
                   })
                 }
-                className="bg-background text-foreground placeholder:text-muted-foreground border-input"
+                className="border-input bg-background text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
@@ -3113,13 +3306,13 @@ export default function Products() {
                       discount_percentage: e.target.value,
                     })
                   }
-                  className="bg-background text-foreground placeholder:text-muted-foreground border-input"
+                  className="border-input bg-background text-foreground placeholder:text-muted-foreground"
                 />
-                <Percent className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Percent className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="start_date" className="text-foreground">
                   Start Date *
@@ -3134,7 +3327,7 @@ export default function Products() {
                       start_date: e.target.value,
                     })
                   }
-                  className="bg-background text-foreground border-input [color-scheme:light] dark:[color-scheme:dark]"
+                  className="border-input bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]"
                 />
               </div>
 
@@ -3152,13 +3345,13 @@ export default function Products() {
                       end_date: e.target.value,
                     })
                   }
-                  className="bg-background text-foreground border-input [color-scheme:light] dark:[color-scheme:dark]"
+                  className="border-input bg-background text-foreground [color-scheme:light] dark:[color-scheme:dark]"
                 />
               </div>
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => {
@@ -3166,10 +3359,15 @@ export default function Products() {
                 setNewDiscountData(emptyNewDiscount);
               }}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateDiscount} disabled={isSubmitting}>
+            <Button
+              onClick={handleCreateDiscount}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -3181,7 +3379,7 @@ export default function Products() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-lg bg-background border-border">
+        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl border-border bg-background sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
@@ -3191,17 +3389,18 @@ export default function Products() {
                 Confirm Delete
               </DialogTitle>
             </div>
-            <DialogDescription className="pt-4">
+            <DialogDescription className="break-words pt-4">
               Are you sure you want to delete the product "
               {productToDelete?.product_name}"? This action cannot be undone.
               All associated assets will also be deleted.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="gap-2 sm:gap-3">
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3">
             <Button
               variant="outline"
               onClick={() => setIsDeleteOpen(false)}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
@@ -3209,6 +3408,7 @@ export default function Products() {
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

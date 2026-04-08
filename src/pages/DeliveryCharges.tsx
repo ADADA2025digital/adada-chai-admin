@@ -42,12 +42,14 @@ import {
   ChevronRight,
   RefreshCw,
   Clock,
+  CheckCircle,
+  XCircle,
+  Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import api from "@/config/axiosConfig";
 
-// Types based on your API
 type DeliveryCharge = {
   option_id: number;
   delivery_title: string;
@@ -85,13 +87,16 @@ export default function DeliveryChargePage() {
   const [deliveryCharges, setDeliveryCharges] = useState<DeliveryCharge[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [search, setSearch] = useState<string>("");
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(new Date());
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(
+    new Date(),
+  );
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+  const [validationErrors, setValidationErrors] =
+    useState<ValidationErrors>({});
   const [alert, setAlert] = useState<AlertType>({
     show: false,
     type: "success",
@@ -100,89 +105,122 @@ export default function DeliveryChargePage() {
 
   const [formData, setFormData] = useState<DeliveryChargeForm>(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 15;
 
-  // API Functions
+  const showAlert = useCallback(
+    (type: "success" | "error", message: string) => {
+      setAlert({ show: true, type, message });
+      setTimeout(() => {
+        setAlert({ show: false, type: "success", message: "" });
+      }, 4000);
+    },
+    [],
+  );
+
   const fetchDeliveryCharges = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await api.get("/delivery-options");
+
       if (response.data.status === "success") {
-        setDeliveryCharges(response.data.data);
+        setDeliveryCharges(response.data.data || []);
+        setLastRefreshTime(new Date());
       } else {
         showAlert("error", "Failed to fetch delivery charges");
       }
     } catch (error: any) {
       console.error("Error fetching delivery charges:", error);
-      showAlert("error", error.response?.data?.message || "Failed to fetch delivery charges");
+      showAlert(
+        "error",
+        error.response?.data?.message || "Failed to fetch delivery charges",
+      );
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [showAlert]);
 
-  const createDeliveryCharge = useCallback(async (data: DeliveryChargeForm) => {
-    try {
-      const response = await api.post("/delivery-options", {
-        delivery_title: data.delivery_title,
-        deleivery_description: data.deleivery_description,
-        delivery_price: parseFloat(data.delivery_price),
-      });
+  const createDeliveryCharge = useCallback(
+    async (data: DeliveryChargeForm) => {
+      try {
+        const response = await api.post("/delivery-options", {
+          delivery_title: data.delivery_title.trim(),
+          deleivery_description: data.deleivery_description.trim(),
+          delivery_price: parseFloat(data.delivery_price),
+        });
 
-      if (response.data.status === "success") {
-        await fetchDeliveryCharges();
-        showAlert("success", "Delivery charge created successfully");
-        return true;
-      } else {
-        showAlert("error", response.data.message || "Failed to create delivery charge");
+        if (response.data.status === "success") {
+          await fetchDeliveryCharges();
+          showAlert("success", "Delivery charge created successfully");
+          return true;
+        } else {
+          showAlert(
+            "error",
+            response.data.message || "Failed to create delivery charge",
+          );
+          return false;
+        }
+      } catch (error: any) {
+        console.error("Error creating delivery charge:", error);
+
+        if (error.response?.status === 422 && error.response.data.errors) {
+          setValidationErrors(error.response.data.errors);
+          const firstError = Object.values(error.response.data.errors)[0]?.[0];
+          if (firstError) showAlert("error", String(firstError));
+        } else {
+          showAlert(
+            "error",
+            error.response?.data?.message || "Failed to create delivery charge",
+          );
+        }
         return false;
       }
-    } catch (error: any) {
-      console.error("Error creating delivery charge:", error);
-      
-      if (error.response?.status === 422 && error.response.data.errors) {
-        setValidationErrors(error.response.data.errors);
-        const firstError = Object.values(error.response.data.errors)[0]?.[0];
-        if (firstError) showAlert("error", firstError);
-      } else {
-        showAlert("error", error.response?.data?.message || "Failed to create delivery charge");
-      }
-      return false;
-    }
-  }, [fetchDeliveryCharges]);
+    },
+    [fetchDeliveryCharges, showAlert],
+  );
 
-  const updateDeliveryCharge = useCallback(async (id: number, data: DeliveryChargeForm) => {
-    try {
-      const response = await api.put(`/delivery-options/${id}`, {
-        delivery_title: data.delivery_title,
-        deleivery_description: data.deleivery_description,
-        delivery_price: parseFloat(data.delivery_price),
-      });
+  const updateDeliveryCharge = useCallback(
+    async (id: number, data: DeliveryChargeForm) => {
+      try {
+        const response = await api.put(`/delivery-options/${id}`, {
+          delivery_title: data.delivery_title.trim(),
+          deleivery_description: data.deleivery_description.trim(),
+          delivery_price: parseFloat(data.delivery_price),
+        });
 
-      if (response.data.status === "success") {
-        await fetchDeliveryCharges();
-        showAlert("success", "Delivery charge updated successfully");
-        return true;
-      } else {
-        showAlert("error", response.data.message || "Failed to update delivery charge");
+        if (response.data.status === "success") {
+          await fetchDeliveryCharges();
+          showAlert("success", "Delivery charge updated successfully");
+          return true;
+        } else {
+          showAlert(
+            "error",
+            response.data.message || "Failed to update delivery charge",
+          );
+          return false;
+        }
+      } catch (error: any) {
+        console.error("Error updating delivery charge:", error);
+
+        if (error.response?.status === 422 && error.response.data.errors) {
+          setValidationErrors(error.response.data.errors);
+          const firstError = Object.values(error.response.data.errors)[0]?.[0];
+          if (firstError) showAlert("error", String(firstError));
+        } else if (error.response?.status === 404) {
+          showAlert("error", "Delivery charge not found");
+        } else {
+          showAlert(
+            "error",
+            error.response?.data?.message || "Failed to update delivery charge",
+          );
+        }
         return false;
       }
-    } catch (error: any) {
-      console.error("Error updating delivery charge:", error);
-      
-      if (error.response?.status === 422 && error.response.data.errors) {
-        setValidationErrors(error.response.data.errors);
-        const firstError = Object.values(error.response.data.errors)[0]?.[0];
-        if (firstError) showAlert("error", firstError);
-      } else if (error.response?.status === 404) {
-        showAlert("error", "Delivery charge not found");
-      } else {
-        showAlert("error", error.response?.data?.message || "Failed to update delivery charge");
-      }
-      return false;
-    }
-  }, [fetchDeliveryCharges]);
+    },
+    [fetchDeliveryCharges, showAlert],
+  );
 
   const formatDateTime = useCallback((date: Date): string => {
     return date.toLocaleString("en-US", {
@@ -195,16 +233,6 @@ export default function DeliveryChargePage() {
       hour12: true,
     });
   }, []);
-
-  const showAlert = useCallback(
-    (type: "success" | "error", message: string) => {
-      setAlert({ show: true, type, message });
-      setTimeout(() => {
-        setAlert({ show: false, type: "success", message: "" });
-      }, 4000);
-    },
-    [],
-  );
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -243,6 +271,16 @@ export default function DeliveryChargePage() {
     return filteredDeliveryCharges.slice(startIndex, endIndex);
   }, [filteredDeliveryCharges, currentPage]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   const handleInputChange = useCallback(
     (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const { name, value } = e.target;
@@ -251,7 +289,6 @@ export default function DeliveryChargePage() {
         [name]: value,
       }));
 
-      // Clear validation error for this field when user starts typing
       if (validationErrors[name as keyof ValidationErrors]) {
         setValidationErrors((prev) => ({
           ...prev,
@@ -279,10 +316,10 @@ export default function DeliveryChargePage() {
 
     if (!formData.delivery_price.trim()) {
       errors.delivery_price = ["Delivery price is required"];
-    } else if (parseFloat(formData.delivery_price) <= 0) {
-      errors.delivery_price = ["Delivery price must be greater than 0"];
     } else if (isNaN(parseFloat(formData.delivery_price))) {
       errors.delivery_price = ["Please enter a valid number"];
+    } else if (parseFloat(formData.delivery_price) <= 0) {
+      errors.delivery_price = ["Delivery price must be greater than 0"];
     }
 
     if (!formData.deleivery_description.trim()) {
@@ -297,7 +334,7 @@ export default function DeliveryChargePage() {
 
     if (Object.keys(errors).length > 0) {
       const firstError = Object.values(errors)[0]?.[0];
-      if (firstError) showAlert("error", firstError);
+      if (firstError) showAlert("error", String(firstError));
       return false;
     }
 
@@ -306,15 +343,16 @@ export default function DeliveryChargePage() {
 
   const handleAddItem = useCallback(async () => {
     if (!validateForm()) return;
-
+    setIsSubmitting(true);
     const success = await createDeliveryCharge(formData);
     if (success) {
       setIsAddOpen(false);
       resetForm();
     }
+    setIsSubmitting(false);
   }, [validateForm, createDeliveryCharge, formData, resetForm]);
 
-  const handleEditClick = useCallback(async (item: DeliveryCharge) => {
+  const handleEditClick = useCallback((item: DeliveryCharge) => {
     setEditId(item.option_id);
     setFormData({
       delivery_title: item.delivery_title,
@@ -328,12 +366,13 @@ export default function DeliveryChargePage() {
   const handleUpdateItem = useCallback(async () => {
     if (editId === null) return;
     if (!validateForm()) return;
-
+    setIsSubmitting(true);
     const success = await updateDeliveryCharge(editId, formData);
     if (success) {
       setIsEditOpen(false);
       resetForm();
     }
+    setIsSubmitting(false);
   }, [editId, validateForm, updateDeliveryCharge, formData, resetForm]);
 
   const handlePageChange = useCallback(
@@ -344,7 +383,6 @@ export default function DeliveryChargePage() {
     [totalPages],
   );
 
-  // Load data on component mount
   useEffect(() => {
     fetchDeliveryCharges();
   }, [fetchDeliveryCharges]);
@@ -361,10 +399,12 @@ export default function DeliveryChargePage() {
             name="delivery_title"
             value={formData.delivery_title}
             onChange={handleInputChange}
-            placeholder="Enter delivery title (e.g., Standard Shipping)"
+            placeholder="Enter delivery title"
             autoComplete="off"
             autoFocus
-            className={validationErrors.delivery_title ? "border-destructive" : ""}
+            className={
+              validationErrors.delivery_title ? "border-destructive" : ""
+            }
           />
           {validationErrors.delivery_title && (
             <p className="text-sm text-destructive">
@@ -406,7 +446,7 @@ export default function DeliveryChargePage() {
             name="deleivery_description"
             value={formData.deleivery_description}
             onChange={handleInputChange}
-            placeholder="Enter delivery description (e.g., 3-5 business days delivery)"
+            placeholder="Enter delivery description"
             className={cn(
               "min-h-[120px] resize-y",
               validationErrors.deleivery_description && "border-destructive",
@@ -424,33 +464,32 @@ export default function DeliveryChargePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -459,10 +498,15 @@ export default function DeliveryChargePage() {
   }
 
   return (
-    <div className="relative space-y-6 p-6">
+    <div className="relative space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="fixed top-16 right-4 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
+            {alert.type === "success" ? (
+              <CheckCircle className="h-5 w-5" />
+            ) : (
+              <XCircle className="h-5 w-5" />
+            )}
             <div className="flex flex-col">
               <AlertTitle>
                 {alert.type === "success" ? "Success" : "Error"}
@@ -474,7 +518,7 @@ export default function DeliveryChargePage() {
       )}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             Delivery Charges
           </h1>
@@ -482,25 +526,26 @@ export default function DeliveryChargePage() {
             Manage delivery charge records with full CRUD operations
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
             />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button onClick={() => setIsAddOpen(true)}>
+          <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Delivery Charge
           </Button>
@@ -512,7 +557,7 @@ export default function DeliveryChargePage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Total Records</p>
               <h3 className="mt-1 text-2xl font-bold">{totalRecords}</h3>
             </div>
@@ -524,7 +569,7 @@ export default function DeliveryChargePage() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Filtered Records</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {filteredDeliveryCharges.length}
@@ -536,9 +581,9 @@ export default function DeliveryChargePage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm">
+        <Card className="rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Current Page</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {currentPage} / {totalPages}
@@ -553,7 +598,7 @@ export default function DeliveryChargePage() {
 
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Delivery Charge Listing</CardTitle>
             <CardDescription>
               View, add, and edit delivery charges
@@ -575,7 +620,75 @@ export default function DeliveryChargePage() {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedDeliveryCharges.length > 0 ? (
+              paginatedDeliveryCharges.map((item) => (
+                <div
+                  key={item.option_id}
+                  className="rounded-xl border p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">
+                        ID #{item.option_id}
+                      </p>
+                      <p className="break-words font-medium">
+                        {item.delivery_title}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEditClick(item)}
+                        className="h-8 w-8"
+                        title="Edit delivery charge"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="mt-1 text-sm font-medium text-muted-foreground">
+                        ${parseFloat(item.delivery_price.toString()).toFixed(2)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Description</p>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {item.deleivery_description || "—"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Truck className="h-8 w-8 opacity-50" />
+                  <p>No delivery charges found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
@@ -598,7 +711,7 @@ export default function DeliveryChargePage() {
                         <p className="font-medium">{item.delivery_title}</p>
                       </TableCell>
                       <TableCell className="text-center font-medium">
-                        $ {parseFloat(item.delivery_price.toString()).toFixed(2)}
+                        ${parseFloat(item.delivery_price.toString()).toFixed(2)}
                       </TableCell>
                       <TableCell className="max-w-[500px]">
                         <p className="line-clamp-2 text-sm text-muted-foreground">
@@ -647,7 +760,7 @@ export default function DeliveryChargePage() {
           </div>
 
           {filteredDeliveryCharges.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
@@ -667,7 +780,7 @@ export default function DeliveryChargePage() {
                 records
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -678,30 +791,28 @@ export default function DeliveryChargePage() {
                   Prev
                 </Button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from(
-                    { length: Math.min(5, totalPages) },
-                    (_, index) => {
-                      let page = index + 1;
-                      if (totalPages > 5 && currentPage > 3) {
-                        page = currentPage - 2 + index;
-                        if (page > totalPages) return null;
-                      }
+                <div className="flex flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let page = index + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
                       if (page > totalPages) return null;
+                    }
+                    if (page > totalPages) return null;
 
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(page)}
-                          className="min-w-9"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    },
-                  )}
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+
                   {totalPages > 5 && currentPage < totalPages - 2 && (
                     <>
                       <span className="px-2">...</span>
@@ -740,7 +851,7 @@ export default function DeliveryChargePage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add Delivery Charge</DialogTitle>
             <DialogDescription>
@@ -750,11 +861,22 @@ export default function DeliveryChargePage() {
 
           {DeliveryChargeFormFields}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddItem}>Add Delivery Charge</Button>
+            <Button
+              onClick={handleAddItem}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Add Delivery Charge
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -767,7 +889,7 @@ export default function DeliveryChargePage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Delivery Charge</DialogTitle>
             <DialogDescription>
@@ -777,11 +899,22 @@ export default function DeliveryChargePage() {
 
           {DeliveryChargeFormFields}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsEditOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={handleUpdateItem}>Update Delivery Charge</Button>
+            <Button
+              onClick={handleUpdateItem}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Update Delivery Charge
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

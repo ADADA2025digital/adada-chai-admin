@@ -52,7 +52,6 @@ import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Types
 type Product = {
   product_id: number;
   product_name?: string;
@@ -489,14 +488,14 @@ export default function DiscountPage() {
                 value={formData.start_date}
                 onChange={handleInputChange}
                 className={cn(
-                  "pr-10 [color-scheme:light] dark:text-white dark:bg-zinc-950 dark:border-zinc-800",
-                  "[&::-webkit-calendar-picker-indicator]:opacity-0",
+                  "pr-10 [color-scheme:light] dark:border-zinc-800 dark:bg-zinc-950 dark:text-white",
                   "[&::-webkit-calendar-picker-indicator]:absolute",
                   "[&::-webkit-calendar-picker-indicator]:right-0",
                   "[&::-webkit-calendar-picker-indicator]:top-0",
                   "[&::-webkit-calendar-picker-indicator]:h-full",
                   "[&::-webkit-calendar-picker-indicator]:w-10",
                   "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
+                  "[&::-webkit-calendar-picker-indicator]:opacity-0",
                   validationErrors.start_date ? "border-destructive" : "",
                 )}
               />
@@ -523,14 +522,14 @@ export default function DiscountPage() {
                 value={formData.end_date}
                 onChange={handleInputChange}
                 className={cn(
-                  "pr-10 [color-scheme:light] dark:text-white dark:bg-zinc-950 dark:border-zinc-800",
-                  "[&::-webkit-calendar-picker-indicator]:opacity-0",
+                  "pr-10 [color-scheme:light] dark:border-zinc-800 dark:bg-zinc-950 dark:text-white",
                   "[&::-webkit-calendar-picker-indicator]:absolute",
                   "[&::-webkit-calendar-picker-indicator]:right-0",
                   "[&::-webkit-calendar-picker-indicator]:top-0",
                   "[&::-webkit-calendar-picker-indicator]:h-full",
                   "[&::-webkit-calendar-picker-indicator]:w-10",
                   "[&::-webkit-calendar-picker-indicator]:cursor-pointer",
+                  "[&::-webkit-calendar-picker-indicator]:opacity-0",
                   validationErrors.end_date ? "border-destructive" : "",
                 )}
               />
@@ -550,13 +549,14 @@ export default function DiscountPage() {
 
   if (loading && discounts.length === 0) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="h-8 w-48 animate-pulse rounded bg-muted" />
             <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
+
         <Separator />
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -567,13 +567,13 @@ export default function DiscountPage() {
                   <div className="h-4 w-20 animate-pulse rounded bg-muted" />
                   <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             <p className="mt-4 text-muted-foreground">Loading discounts...</p>
@@ -585,7 +585,7 @@ export default function DiscountPage() {
 
   if (error && discounts.length === 0) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
+      <div className="flex h-[50vh] items-center justify-center px-4">
         <div className="text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-destructive" />
           <p className="mt-2 text-sm text-destructive">{error}</p>
@@ -598,9 +598,9 @@ export default function DiscountPage() {
   }
 
   return (
-    <div className="relative space-y-6 p-6">
+    <div className="relative space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-50 w-[calc(100%-2rem)] max-w-sm duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -618,7 +618,7 @@ export default function DiscountPage() {
       )}
 
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             Discount Management
           </h1>
@@ -626,25 +626,30 @@ export default function DiscountPage() {
             Manage all discounts and promotional offers
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
             />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button onClick={() => setIsAddOpen(true)}>
+
+          <Button
+            onClick={() => setIsAddOpen(true)}
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Discount
           </Button>
@@ -656,7 +661,7 @@ export default function DiscountPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Total Discounts</p>
               <h3 className="mt-1 text-2xl font-bold">{totalDiscounts}</h3>
             </div>
@@ -668,7 +673,7 @@ export default function DiscountPage() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Active Discounts</p>
               <h3 className="mt-1 text-2xl font-bold">{activeCount}</h3>
             </div>
@@ -680,7 +685,7 @@ export default function DiscountPage() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Expired Discounts</p>
               <h3 className="mt-1 text-2xl font-bold">{expiredCount}</h3>
             </div>
@@ -692,7 +697,7 @@ export default function DiscountPage() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Current Page</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {currentPage} / {totalPages}
@@ -707,7 +712,7 @@ export default function DiscountPage() {
 
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Discount Listing</CardTitle>
             <CardDescription>
               View and manage all available discounts
@@ -726,7 +731,128 @@ export default function DiscountPage() {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedDiscounts.length > 0 ? (
+              paginatedDiscounts.map((discount) => {
+                const status = getDiscountStatus(
+                  discount.start_date,
+                  discount.end_date,
+                );
+
+                return (
+                  <div
+                    key={discount.discount_id}
+                    className="rounded-xl border p-4 shadow-sm"
+                  >
+                    <div className="mb-3 flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs text-muted-foreground">
+                          ID #{discount.discount_id}
+                        </p>
+                        <p className="break-words font-medium">
+                          {discount.discount_name}
+                        </p>
+                      </div>
+
+                      <div className="shrink-0">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDeleteClick(discount)}
+                          className="h-8 w-8 hover:text-destructive"
+                          title="Delete discount"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Percentage
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-primary">
+                          {discount.discount_percentage}%
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Start Date
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground break-words">
+                            {formatDate(discount.start_date)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            End Date
+                          </p>
+                          <p className="mt-1 text-sm text-muted-foreground break-words">
+                            {formatDate(discount.end_date)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">Status</p>
+                          <div className="mt-1">
+                            <span
+                              className={cn(
+                                "inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
+                                status === "Active" &&
+                                  "bg-green-100 text-green-700",
+                                status === "Upcoming" &&
+                                  "bg-yellow-100 text-yellow-700",
+                                status === "Expired" &&
+                                  "bg-red-100 text-red-700",
+                              )}
+                            >
+                              {status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="rounded-lg bg-muted/40 p-3">
+                          <p className="text-xs text-muted-foreground">
+                            Products
+                          </p>
+                          <p className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground">
+                            <Package className="h-4 w-4" />
+                            {discount.products?.length || 0}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <BadgePercent className="h-8 w-8 opacity-50" />
+                  <p>No discounts found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -838,7 +964,7 @@ export default function DiscountPage() {
           </div>
 
           {filteredDiscounts.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
@@ -856,7 +982,7 @@ export default function DiscountPage() {
                 discounts
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -867,13 +993,15 @@ export default function DiscountPage() {
                   Prev
                 </Button>
 
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
                     let page = index + 1;
+
                     if (totalPages > 5 && currentPage > 3) {
                       page = currentPage - 2 + index;
                       if (page > totalPages) return null;
                     }
+
                     if (page > totalPages) return null;
 
                     return (
@@ -926,7 +1054,7 @@ export default function DiscountPage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add New Discount</DialogTitle>
             <DialogDescription>
@@ -936,11 +1064,19 @@ export default function DiscountPage() {
 
           {DiscountFormFields}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={handleAddDiscount} disabled={isSubmitting}>
+            <Button
+              onClick={handleAddDiscount}
+              disabled={isSubmitting}
+              className="w-full sm:w-auto"
+            >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               )}
@@ -951,28 +1087,33 @@ export default function DiscountPage() {
       </Dialog>
 
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
             </div>
-            <DialogDescription className="pt-4">
+            <DialogDescription className="break-words pt-4">
               Are you sure you want to delete the discount "
               {discountToDelete?.discount_name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="gap-2 sm:gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
               {isSubmitting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

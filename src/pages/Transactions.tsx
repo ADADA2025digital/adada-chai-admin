@@ -285,7 +285,8 @@ export default function Transactions() {
       setError(null);
 
       const response = await api.get("/transactions");
-console.log("API response:", response);
+      console.log("API response:", response);
+
       let apiData: any[] = [];
 
       if (
@@ -301,7 +302,6 @@ console.log("API response:", response);
 
       const mappedTransactions = apiData.map(mapApiTransactionToUI);
 
-      // Latest transaction first
       const sortedTransactions = [...mappedTransactions].sort((a, b) => {
         const timeA = a.createdAtRaw ? new Date(a.createdAtRaw).getTime() : 0;
         const timeB = b.createdAtRaw ? new Date(b.createdAtRaw).getTime() : 0;
@@ -452,7 +452,7 @@ console.log("API response:", response);
 
   if (loading && transactions.length === 0) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="h-8 w-48 animate-pulse rounded bg-muted" />
@@ -476,7 +476,7 @@ console.log("API response:", response);
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
@@ -488,11 +488,11 @@ console.log("API response:", response);
 
   if (error && transactions.length === 0) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex h-[50vh] items-center justify-center px-4">
         <div className="text-center">
-          <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <p className="mb-2 text-red-500">{error}</p>
-          <Button onClick={handleRefresh} variant="outline">
+          <AlertCircle className="mx-auto mb-4 h-8 w-8 text-red-500" />
+          <p className="mb-2 text-sm text-red-500">{error}</p>
+          <Button onClick={handleRefresh} variant="outline" className="mt-4">
             <RefreshCw className="mr-2 h-4 w-4" />
             Retry
           </Button>
@@ -502,9 +502,9 @@ console.log("API response:", response);
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+    <div className="relative min-w-0 overflow-x-hidden space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             All Transactions
           </h1>
@@ -513,15 +513,15 @@ console.log("API response:", response);
           </p>
 
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
-          <Button variant="outline" onClick={handlePrint}>
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
+          <Button variant="outline" onClick={handlePrint} className="w-full sm:w-auto">
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
@@ -530,6 +530,7 @@ console.log("API response:", response);
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
@@ -544,7 +545,7 @@ console.log("API response:", response);
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">
                 Total Transactions
               </p>
@@ -552,12 +553,12 @@ console.log("API response:", response);
                 {stats.totalTransactions}
               </h3>
               {stats.successRate > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   {stats.successRate.toFixed(1)}% success rate
                 </p>
               )}
             </div>
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="shrink-0 rounded-2xl bg-primary/10 p-3">
               <Wallet className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
@@ -565,9 +566,9 @@ console.log("API response:", response);
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Total Revenue</p>
-              <h3 className="mt-1 text-2xl font-bold">
+              <h3 className="mt-1 break-words text-2xl font-bold">
                 $
                 {stats.totalRevenue.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
@@ -575,12 +576,12 @@ console.log("API response:", response);
                 })}
               </h3>
               {stats.averageOrderValue > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   Avg. ${stats.averageOrderValue.toFixed(2)} per order
                 </p>
               )}
             </div>
-            <div className="rounded-2xl bg-green-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-green-100 p-3">
               <DollarSign className="h-5 w-5 text-green-700" />
             </div>
           </CardContent>
@@ -588,9 +589,9 @@ console.log("API response:", response);
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Pending Payments</p>
-              <h3 className="mt-1 text-2xl font-bold">
+              <h3 className="mt-1 break-words text-2xl font-bold">
                 $
                 {stats.pendingPayments.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
@@ -598,7 +599,7 @@ console.log("API response:", response);
                 })}
               </h3>
               {stats.pendingPayments > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   {
                     transactions.filter(
                       (item) => item.paymentStatus.toLowerCase() === "pending",
@@ -608,7 +609,7 @@ console.log("API response:", response);
                 </p>
               )}
             </div>
-            <div className="rounded-2xl bg-yellow-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-yellow-100 p-3">
               <Clock3 className="h-5 w-5 text-yellow-700" />
             </div>
           </CardContent>
@@ -616,13 +617,13 @@ console.log("API response:", response);
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Completed</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {stats.completedTransactions}
               </h3>
               {stats.totalTransactions > 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   {(
                     (stats.completedTransactions / stats.totalTransactions) *
                     100
@@ -631,15 +632,16 @@ console.log("API response:", response);
                 </p>
               )}
             </div>
-            <div className="rounded-2xl bg-blue-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-blue-100 p-3">
               <CheckCircle className="h-5 w-5 text-blue-700" />
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="flex flex-wrap items-end gap-6">
-        <div className="flex flex-col gap-2">
+      {/* Filters */}
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="flex min-w-0 flex-col gap-2">
           <Label>Search</Label>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -654,7 +656,7 @@ console.log("API response:", response);
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <Label>Payment Status</Label>
           <Select
             value={filterPaymentStatus}
@@ -675,7 +677,7 @@ console.log("API response:", response);
           </Select>
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <Label>Order Status</Label>
           <Select
             value={filterOrderStatus}
@@ -705,8 +707,150 @@ console.log("API response:", response);
           </CardDescription>
         </CardHeader>
 
-        <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+        <CardContent className="min-w-0">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedTransactions.length > 0 ? (
+              paginatedTransactions.map((transaction, index) => (
+                <div
+                  key={transaction.id}
+                  className="min-w-0 overflow-hidden rounded-xl border p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">
+                        No. {(currentPage - 1) * transactionsPerPage + index + 1}
+                      </p>
+                      <p className="break-words font-medium">
+                        {transaction.transactionId}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleViewClick(transaction)}
+                        className="h-8 w-8"
+                        title="View Transaction Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Customer</p>
+                      <p className="mt-1 break-words text-sm font-medium">
+                        {transaction.customerName}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        {transaction.customerEmail}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">Order ID</p>
+                        <p className="mt-1 break-words text-sm font-medium">
+                          {transaction.orderId}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Invoice ID
+                        </p>
+                        <p className="mt-1 break-words text-sm font-medium">
+                          {transaction.invoiceId}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Payment Status
+                        </p>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-medium break-words ${getPaymentStatusClasses(
+                              transaction.paymentStatus,
+                            )}`}
+                          >
+                            {transaction.paymentStatus}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Order Status
+                        </p>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex max-w-full rounded-full border px-2.5 py-1 text-xs font-medium break-words ${getOrderStatusClasses(
+                              transaction.orderStatus,
+                            )}`}
+                          >
+                            {transaction.orderStatus.replace("_", " ")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Total Amount
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                          ${transaction.totalAmount.toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Paid Amount
+                        </p>
+                        <p className="mt-1 text-sm font-semibold">
+                          ${transaction.paidAmount.toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Payment Date
+                      </p>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {transaction.paymentDate}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Wallet className="h-8 w-8 opacity-50" />
+                  <p>No transactions found</p>
+                  {(search ||
+                    filterPaymentStatus !== "all" ||
+                    filterOrderStatus !== "all") && (
+                    <Button
+                      variant="link"
+                      onClick={handleRefresh}
+                      className="text-sm"
+                    >
+                      Clear filters
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden min-w-0 overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
@@ -823,8 +967,8 @@ console.log("API response:", response);
           </div>
 
           {filteredTransactions.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="mt-4 flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="min-w-0 break-words text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
                   {(currentPage - 1) * transactionsPerPage + 1}
@@ -843,7 +987,7 @@ console.log("API response:", response);
                 transactions
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -854,45 +998,47 @@ console.log("API response:", response);
                   Prev
                 </Button>
 
-                {Array.from({ length: totalPages }, (_, index) => {
-                  const page = index + 1;
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, index) => {
+                    const page = index + 1;
 
-                  if (
-                    totalPages <= 7 ||
-                    page === 1 ||
-                    page === totalPages ||
-                    (page >= currentPage - 1 && page <= currentPage + 1)
-                  ) {
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="min-w-9"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  } else if (page === currentPage - 2 && currentPage > 3) {
-                    return (
-                      <span key={page} className="px-2">
-                        ...
-                      </span>
-                    );
-                  } else if (
-                    page === currentPage + 2 &&
-                    currentPage < totalPages - 2
-                  ) {
-                    return (
-                      <span key={page} className="px-2">
-                        ...
-                      </span>
-                    );
-                  }
+                    if (
+                      totalPages <= 7 ||
+                      page === 1 ||
+                      page === totalPages ||
+                      (page >= currentPage - 1 && page <= currentPage + 1)
+                    ) {
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="min-w-9"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    } else if (page === currentPage - 2 && currentPage > 3) {
+                      return (
+                        <span key={page} className="px-2">
+                          ...
+                        </span>
+                      );
+                    } else if (
+                      page === currentPage + 2 &&
+                      currentPage < totalPages - 2
+                    ) {
+                      return (
+                        <span key={page} className="px-2">
+                          ...
+                        </span>
+                      );
+                    }
 
-                  return null;
-                })}
+                    return null;
+                  })}
+                </div>
 
                 <Button
                   variant="outline"
@@ -910,7 +1056,7 @@ console.log("API response:", response);
       </Card>
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Transaction Details</DialogTitle>
             <DialogDescription>
@@ -920,51 +1066,51 @@ console.log("API response:", response);
 
           {selectedTransaction && (
             <div className="space-y-6">
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-2">
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <CreditCard className="h-4 w-4" />
                     Payment Information
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Transaction ID
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.transactionId}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order ID
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.orderId}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Invoice ID
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.invoiceId}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Method
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.paymentMethod.toUpperCase()}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Total Amount
                       </p>
@@ -973,7 +1119,7 @@ console.log("API response:", response);
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Paid Amount
                       </p>
@@ -982,7 +1128,7 @@ console.log("API response:", response);
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Status
                       </p>
@@ -995,11 +1141,11 @@ console.log("API response:", response);
                       </span>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Payment Date
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.paymentDate}
                       </p>
                     </div>
@@ -1027,7 +1173,9 @@ console.log("API response:", response);
                           <tbody>
                             {selectedTransaction.items.map((item) => (
                               <tr key={item.order_item_id} className="border-b">
-                                <td className="py-2">{item.product_name}</td>
+                                <td className="py-2 break-words">
+                                  {item.product_name}
+                                </td>
                                 <td className="py-2 text-center">
                                   {item.quantity}
                                 </td>
@@ -1054,15 +1202,15 @@ console.log("API response:", response);
                   )}
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-4 xl:grid-cols-2">
                 <div className="rounded-lg border bg-card p-6">
                   <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <Package className="h-4 w-4" />
                     Order Information
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order Status
                       </p>
@@ -1075,7 +1223,7 @@ console.log("API response:", response);
                       </span>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Order Total
                       </p>
@@ -1084,20 +1232,20 @@ console.log("API response:", response);
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Created At
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.createdAt}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Last Updated
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.lastUpdated}
                       </p>
                     </div>
@@ -1110,30 +1258,30 @@ console.log("API response:", response);
                     Customer Information
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Customer Name
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.customerName}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Email
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-all text-sm font-medium">
                         {selectedTransaction.customerEmail}
                       </p>
                     </div>
 
-                    <div className="space-y-1">
+                    <div className="space-y-1 min-w-0">
                       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Phone
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {selectedTransaction.customerPhone}
                       </p>
                     </div>
@@ -1149,9 +1297,9 @@ console.log("API response:", response);
                     Invoice Links
                   </h3>
 
-                  <div className="flex gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     {selectedTransaction.viewUrl && (
-                      <Button variant="outline" asChild>
+                      <Button variant="outline" asChild className="w-full sm:w-auto">
                         <a
                           href={selectedTransaction.viewUrl}
                           target="_blank"
@@ -1164,7 +1312,7 @@ console.log("API response:", response);
                     )}
 
                     {selectedTransaction.downloadUrl && (
-                      <Button variant="outline" asChild>
+                      <Button variant="outline" asChild className="w-full sm:w-auto">
                         <a
                           href={selectedTransaction.downloadUrl}
                           target="_blank"

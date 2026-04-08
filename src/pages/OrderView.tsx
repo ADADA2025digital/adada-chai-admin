@@ -142,7 +142,6 @@ type AlertType = {
   message: string;
 };
 
-// Refund Modal Component
 const RefundModal = ({
   isOpen,
   onClose,
@@ -218,7 +217,7 @@ const RefundModal = ({
         }
       }}
     >
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Process Refund - Order #{order.orderNumber}</DialogTitle>
           <DialogDescription>
@@ -266,7 +265,7 @@ const RefundModal = ({
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               <option value="">Select a reason</option>
               <option value="customer_request">Customer Request</option>
@@ -297,20 +296,21 @@ const RefundModal = ({
           )}
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
           <Button
             variant="outline"
             onClick={() => {
               onClose();
               resetForm();
             }}
+            className="w-full sm:w-auto"
           >
             Cancel
           </Button>
           <Button
             onClick={handleRefund}
             disabled={isSubmitting}
-            className="bg-red-600 hover:bg-red-700"
+            className="w-full bg-red-600 hover:bg-red-700 sm:w-auto"
           >
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Process Refund
@@ -386,7 +386,6 @@ const formatStatusLabel = (status: string) => {
   return labels[normalized] || status;
 };
 
-// Helper function to get product image URL
 const getProductImageUrl = (product: any): string => {
   if (!product?.assets || product.assets.length === 0) {
     return "/placeholder-image.jpg";
@@ -402,9 +401,7 @@ const getProductImageUrl = (product: any): string => {
 
   let imageUrl = imageAsset.asset_url;
 
-  // Add base URL if it's a relative path
   if (imageUrl.startsWith("/storage/") || imageUrl.startsWith("/")) {
-    // Get the base URL from your API config or environment variable
     const baseURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8000";
     imageUrl = `${baseURL}${imageUrl}`;
   }
@@ -473,7 +470,6 @@ export default function OrderView() {
         setError(null);
 
         const response = await api.get(`/orders/${id}`);
-        console.log("Fetch order response:", response.data);
 
         if (response.data.status === "success") {
           setOrderData(response.data.data);
@@ -505,7 +501,6 @@ export default function OrderView() {
   const order = useMemo<TransformedOrder | null>(() => {
     if (!orderData) return null;
 
-    // Calculate subtotal from items
     const subtotal =
       orderData.items?.reduce((sum, item) => {
         const price =
@@ -521,12 +516,10 @@ export default function OrderView() {
         return sum + price * quantity;
       }, 0) || 0;
 
-    // Get delivery charge from API response
     const deliveryCharge = orderData.delivery_charge
       ? parseFloat(orderData.delivery_charge)
       : 0;
 
-    // Use grand_total from API if available, otherwise calculate
     const totalAmount = orderData.grand_total
       ? parseFloat(orderData.grand_total)
       : subtotal + deliveryCharge;
@@ -562,7 +555,6 @@ export default function OrderView() {
             ? parseInt(item.quantity, 10)
             : item.quantity;
 
-        // Get the image URL using the helper function
         const imageUrl = getProductImageUrl(item.product);
 
         return {
@@ -673,9 +665,9 @@ export default function OrderView() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center px-4">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
           <p className="mt-4 text-muted-foreground">Loading...</p>
         </div>
       </div>
@@ -684,9 +676,9 @@ export default function OrderView() {
 
   if (error || !order) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         {alert.show && (
-          <div className="fixed right-4 top-16 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+          <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
             <Alert variant={alert.type}>
               {alert.type === "success" ? (
                 <CheckCircle className="h-5 w-5" />
@@ -704,25 +696,30 @@ export default function OrderView() {
         )}
 
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">Order Details</h1>
             <p className="text-sm text-muted-foreground">
               {error || "The requested order record could not be found."}
             </p>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
             <Button
               variant="outline"
               onClick={handleRefresh}
               disabled={refreshing}
+              className="w-full sm:w-auto"
             >
               <RefreshCw
                 className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
               />
               Refresh
             </Button>
-            <Button variant="outline" onClick={() => navigate("/admin/orders")}>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/admin/orders")}
+              className="w-full sm:w-auto"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Orders
             </Button>
@@ -754,9 +751,9 @@ export default function OrderView() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="fixed right-4 top-16 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -773,26 +770,31 @@ export default function OrderView() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">Order Details</h1>
           <p className="text-sm text-muted-foreground">
             Review customer, payment, shipping, and order status information.
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={refreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`}
             />
             {refreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button variant="outline" onClick={() => navigate("/admin/orders")}>
+          <Button
+            variant="outline"
+            onClick={() => navigate("/admin/orders")}
+            className="w-full sm:w-auto"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Orders
           </Button>
@@ -802,13 +804,13 @@ export default function OrderView() {
       <Separator />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Order ID
               </p>
-              <p className="text-xl font-bold">{order.orderNumber}</p>
+              <p className="break-words text-xl font-bold">{order.orderNumber}</p>
             </div>
             <div className="rounded-lg bg-primary/10 p-2 text-primary">
               <ReceiptText className="h-5 w-5" />
@@ -816,9 +818,9 @@ export default function OrderView() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Order Date
               </p>
@@ -830,9 +832,9 @@ export default function OrderView() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Subtotal
               </p>
@@ -844,9 +846,9 @@ export default function OrderView() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Delivery Charge
               </p>
@@ -860,9 +862,9 @@ export default function OrderView() {
           </div>
         </div>
 
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
+        <div className="rounded-lg border bg-card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 Total Amount
               </p>
@@ -879,13 +881,13 @@ export default function OrderView() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
               <ReceiptText className="h-4 w-4" />
               Order Summary
             </h3>
 
-            <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-x-6 gap-y-3 md:grid-cols-2 xl:grid-cols-3">
               <InfoRow
                 icon={<ReceiptText className="h-4 w-4" />}
                 label="Order ID"
@@ -972,16 +974,14 @@ export default function OrderView() {
         </div>
 
         <div className="space-y-6">
-          <div className="rounded-lg border bg-card p-6">
+          <div className="rounded-lg border bg-card p-4 sm:p-6">
             <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
               <PackageCheck className="h-4 w-4" />
               Status Overview
             </h3>
 
             <div className="space-y-6">
-              {/* ROW 1 - Order Status, Payment Status, Order Value */}
-              <div className="grid grid-cols-3 gap-4">
-                {/* Order Status */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Order Status
@@ -993,7 +993,6 @@ export default function OrderView() {
                   </span>
                 </div>
 
-                {/* Payment Status */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Payment Status
@@ -1005,7 +1004,6 @@ export default function OrderView() {
                   </span>
                 </div>
 
-                {/* Order Value */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Order Value
@@ -1016,19 +1014,14 @@ export default function OrderView() {
                 </div>
               </div>
 
-              {/* ROW 2 - Update Order Status & Refund in ONE ROW */}
-              <div className="grid grid-cols-2 gap-2">
-                {/* Update Order Status Section */}
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     Update Order Status
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <div className="min-w-0 flex-1">
-                      <Select
-                        value={newStatus}
-                        onValueChange={handleStatusChange}
-                      >
+                      <Select value={newStatus} onValueChange={handleStatusChange}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select status" />
                         </SelectTrigger>
@@ -1074,11 +1067,10 @@ export default function OrderView() {
                   </div>
                 </div>
 
-                {/* Refund Section - HIDE WHEN ORDER STATUS IS DELIVERED */}
                 {normalizeStatus(order.orderStatus) !== "delivered" && (
                   <div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-3">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Process Refund
                       </p>
                       {order.paymentStatus === "refunded" && (
@@ -1089,7 +1081,6 @@ export default function OrderView() {
                       )}
                     </div>
 
-                    {/* Refund Button - Only for paid orders not refunded */}
                     {order.paymentStatus === "paid" && (
                       <Button
                         variant="outline"
@@ -1101,7 +1092,6 @@ export default function OrderView() {
                       </Button>
                     )}
 
-                    {/* Refund Info for refunded orders */}
                     {order.paymentStatus === "refunded" && (
                       <div className="rounded-md bg-muted p-3">
                         <div className="flex items-center justify-between text-sm">
@@ -1109,11 +1099,10 @@ export default function OrderView() {
                           <span className="font-semibold">
                             ${order.totalAmount.toFixed(2)}
                           </span>
-                        </div>                   
+                        </div>
                       </div>
                     )}
 
-                    {/* Message for non-refundable orders */}
                     {order.paymentStatus !== "paid" &&
                       order.paymentStatus !== "refunded" && (
                         <div className="rounded-md bg-amber-50 p-3">
@@ -1131,7 +1120,7 @@ export default function OrderView() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card p-6">
+      <div className="rounded-lg border bg-card p-4 sm:p-6">
         <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
           <User className="h-4 w-4" />
           Customer Details
@@ -1163,7 +1152,7 @@ export default function OrderView() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   Email
                 </p>
-                <p className="mt-1 break-words text-sm font-semibold">
+                <p className="mt-1 break-all text-sm font-semibold">
                   {order.email}
                 </p>
               </div>
@@ -1214,13 +1203,59 @@ export default function OrderView() {
         </div>
       </div>
 
-      <div className="rounded-lg border bg-card p-6">
+      <div className="rounded-lg border bg-card p-4 sm:p-6">
         <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
           <ShoppingCart className="h-4 w-4" />
           Order Items
         </h3>
 
-        <div className="overflow-x-auto rounded-xl border">
+        {/* Mobile cards */}
+        <div className="space-y-3 md:hidden">
+          {order.orderItems.length > 0 ? (
+            order.orderItems.map((item) => (
+              <div key={item.id} className="rounded-xl border p-4 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border bg-muted">
+                    <img
+                      src={item.image}
+                      alt={item.productName}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.currentTarget.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words font-medium">{item.productName}</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Unit Price</p>
+                        <p>${item.unitPrice.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Quantity</p>
+                        <p>{item.quantity}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="font-semibold">${item.total.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-xl border py-10 text-center text-sm text-muted-foreground">
+              No order items found.
+            </div>
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden overflow-x-auto rounded-xl border md:block">
           <Table className="custom-table-header">
             <TableHeader>
               <TableRow>
@@ -1272,7 +1307,6 @@ export default function OrderView() {
         </div>
       </div>
 
-      {/* Refund Modal */}
       <RefundModal
         isOpen={showRefundModal}
         onClose={() => setShowRefundModal(false)}

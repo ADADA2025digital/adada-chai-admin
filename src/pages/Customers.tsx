@@ -40,7 +40,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   Users,
-  Plus,
   Search,
   Eye,
   MapPin,
@@ -55,7 +54,6 @@ import {
   CheckCircle,
   Loader2,
   Download,
-  FileText,
   XCircle,
   Repeat,
   Calendar,
@@ -70,14 +68,12 @@ type LoadingState = {
   adding: boolean;
 };
 
-// Alert interface
 interface AlertState {
   show: boolean;
   type: "success" | "error";
   message: string;
 }
 
-// Rent Request interface based on your API response
 interface RentRequest {
   rent_id: number;
   customer_id: number;
@@ -109,9 +105,7 @@ interface RentRequest {
   };
 }
 
-// Transform API customer data to match your UI interface
 const transformCustomerData = (apiCustomer: any): Customer => {
-  // Get the primary address (addresses is an array)
   const primaryAddress = apiCustomer.addresses?.[0] || {
     address_line1: "",
     city: "",
@@ -120,10 +114,8 @@ const transformCustomerData = (apiCustomer: any): Customer => {
     postal_code: "",
   };
 
-  // Transform orders based on your structure
   const orders: Order[] =
     apiCustomer.orders?.map((order: any) => {
-      // Calculate order total from items
       const orderTotal =
         order.items?.reduce((sum: number, item: any) => {
           const itemPrice = parseFloat(item.order_price || 0);
@@ -132,7 +124,6 @@ const transformCustomerData = (apiCustomer: any): Customer => {
           return sum + itemTotal;
         }, 0) || 0;
 
-      // Transform items
       const items =
         order.items?.map((item: any) => ({
           productName: item.product?.product_name || "Product",
@@ -151,18 +142,16 @@ const transformCustomerData = (apiCustomer: any): Customer => {
       };
     }) || [];
 
-  // Calculate total spent by summing all order totals
   const totalSpent = orders.reduce((sum, order) => sum + order.total, 0);
 
-  // Split full name
   const nameParts = apiCustomer.full_name?.split(" ") || [];
   const firstName = nameParts[0] || "";
   const lastName = nameParts.slice(1).join(" ") || "";
 
-  const transformedCustomer = {
+  return {
     id: apiCustomer.customer_id || apiCustomer.id,
-    firstName: firstName,
-    lastName: lastName,
+    firstName,
+    lastName,
     email: apiCustomer.email || "",
     phone: apiCustomer.ph_number || apiCustomer.phone || "",
     createdAt:
@@ -177,12 +166,10 @@ const transformCustomerData = (apiCustomer: any): Customer => {
       country: primaryAddress.country || "",
       zipCode: primaryAddress.postal_code || "",
     },
-    totalSpent: totalSpent,
+    totalSpent,
     notes: apiCustomer.notes || "",
-    orders: orders,
+    orders,
   };
-
-  return transformedCustomer;
 };
 
 type CustomerForm = {
@@ -272,7 +259,6 @@ const formatDateOnly = (dateString: string): string => {
   });
 };
 
-// Helper function to get full image URL
 const getFullImageUrl = (assetUrl: string): string => {
   if (!assetUrl) return "";
   if (assetUrl.startsWith("http")) return assetUrl;
@@ -292,12 +278,10 @@ export default function Customers() {
   const [error, setError] = useState<string | null>(null);
   const [totalCustomersCount, setTotalCustomersCount] = useState<number>(0);
 
-  // Rent requests state
   const [rentRequests, setRentRequests] = useState<RentRequest[]>([]);
   const [rentRequestsLoading, setRentRequestsLoading] =
     useState<boolean>(false);
 
-  // Alert state
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -312,7 +296,6 @@ export default function Customers() {
   const [currentPage, setCurrentPage] = useState(1);
   const customersPerPage = 15;
 
-  // Show alert helper with auto-dismiss
   const showAlert = useCallback(
     (type: "success" | "error", message: string) => {
       setAlert({ show: true, type, message });
@@ -323,7 +306,6 @@ export default function Customers() {
     [],
   );
 
-  // Fetch total customers count from API
   const fetchTotalCustomersCount = useCallback(async () => {
     try {
       const response = await api.get("/customers");
@@ -342,7 +324,6 @@ export default function Customers() {
     }
   }, []);
 
-  // Fetch all customers from API
   const fetchCustomers = useCallback(
     async (showLoading = true, showSuccessAlert = false) => {
       try {
@@ -358,9 +339,7 @@ export default function Customers() {
           Array.isArray(response.data.data)
         ) {
           const transformedCustomers = response.data.data.map(
-            (customer: any) => {
-              return transformCustomerData(customer);
-            },
+            (customer: any) => transformCustomerData(customer),
           );
 
           setCustomers(transformedCustomers);
@@ -371,7 +350,6 @@ export default function Customers() {
             showAlert("success", "Customers refreshed successfully!");
           }
         } else {
-          console.error("❌ Invalid response format:", response.data);
           throw new Error("Invalid response format from server");
         }
       } catch (err: any) {
@@ -398,17 +376,14 @@ export default function Customers() {
     [showAlert],
   );
 
-  // Fetch single customer details
   const fetchCustomerDetails = useCallback(
     async (customerId: number): Promise<Customer | null> => {
       try {
         const response = await api.get(`/customers/${customerId}`);
 
         if (response.data.status === "success" && response.data.data) {
-          const transformedCustomer = transformCustomerData(response.data.data);
-          return transformedCustomer;
+          return transformCustomerData(response.data.data);
         }
-        console.warn(`⚠️ No customer data found for ID: ${customerId}`);
         return null;
       } catch (err: any) {
         console.error(`❌ Error fetching customer ${customerId}:`, err);
@@ -421,17 +396,13 @@ export default function Customers() {
     [],
   );
 
-  // Fetch rent requests for a customer by email
   const fetchRentRequests = useCallback(async (email: string) => {
-    if (!email) {
-      console.warn("No email provided to fetch rent requests");
-      return [];
-    }
+    if (!email) return [];
 
     setRentRequestsLoading(true);
     try {
       const response = await api.get("/rent/customer-requests", {
-        params: { email: email },
+        params: { email },
       });
 
       if (response.data.status === "success" && response.data.data) {
@@ -451,7 +422,6 @@ export default function Customers() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     fetchCustomers(true, false);
     fetchTotalCustomersCount();
@@ -474,7 +444,7 @@ export default function Customers() {
 
     if (!q) return customers;
 
-    const filtered = customers.filter((customer) => {
+    return customers.filter((customer) => {
       return (
         customer.id.toString().includes(q) ||
         customer.firstName.toLowerCase().includes(q) ||
@@ -483,14 +453,10 @@ export default function Customers() {
         customer.phone.toLowerCase().includes(q)
       );
     });
-
-    return filtered;
   }, [customers, search]);
 
-  // Calculate repeat customers (customers with more than 1 order)
   const repeatCustomers = useMemo(() => {
-    const repeat = customers.filter((customer) => customer.orders.length > 1);
-    return repeat;
+    return customers.filter((customer) => customer.orders.length > 1);
   }, [customers]);
 
   const totalPages = Math.max(
@@ -617,7 +583,7 @@ export default function Customers() {
   };
 
   const CustomerFormFields = () => (
-    <div className="grid gap-4 py-2 max-h-[70vh] overflow-y-auto px-1">
+    <div className="grid max-h-[70vh] gap-4 overflow-y-auto px-1 py-2">
       <div className="space-y-4">
         <h3 className="text-lg font-semibold">Personal Information</h3>
         <div className="grid gap-4 md:grid-cols-2">
@@ -729,13 +695,13 @@ export default function Customers() {
         <h3 className="text-lg font-semibold">Additional Information</h3>
         <div className="grid gap-2">
           <Label htmlFor="notes">Notes</Label>
-          <textarea
+          <Textarea
             id="notes"
             name="notes"
             value={formData.notes}
             onChange={handleInputChange}
             placeholder="Enter customer notes"
-            className="min-h-[100px] rounded-md border bg-background px-3 py-2 text-sm outline-none"
+            className="min-h-[100px]"
           />
         </div>
       </div>
@@ -744,11 +710,11 @@ export default function Customers() {
 
   if (loading.fetching && customers.length === 0) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
         <Separator />
@@ -758,18 +724,18 @@ export default function Customers() {
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -778,17 +744,17 @@ export default function Customers() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="relative min-w-0 overflow-x-hidden space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {/* Alert Notification */}
       {alert.show && (
-        <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-[9999] w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
             ) : (
               <XCircle className="h-5 w-5" />
             )}
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <AlertTitle>
                 {alert.type === "success" ? "Success" : "Error"}
               </AlertTitle>
@@ -798,24 +764,25 @@ export default function Customers() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">All Customers</h1>
           <p className="text-sm text-muted-foreground">
             Manage customer records, contact details, and order history.
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={loading.refreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn(
@@ -831,10 +798,10 @@ export default function Customers() {
       <Separator />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="text-sm">{error}</span>
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 break-words text-sm">{error}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -850,24 +817,24 @@ export default function Customers() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Total Customers</p>
               <h3 className="mt-1 text-2xl font-bold">{totalCustomersCount}</h3>
             </div>
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="shrink-0 rounded-2xl bg-primary/10 p-3">
               <Users className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
         </Card>
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Repeat Customers</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {repeatCustomers.length}
               </h3>
               {customers.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="mt-1 break-words text-xs text-muted-foreground">
                   {((repeatCustomers.length / customers.length) * 100).toFixed(
                     1,
                   )}
@@ -875,7 +842,7 @@ export default function Customers() {
                 </p>
               )}
             </div>
-            <div className="rounded-2xl bg-blue-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-blue-100 p-3">
               <Repeat className="h-5 w-5 text-blue-700" />
             </div>
           </CardContent>
@@ -884,7 +851,7 @@ export default function Customers() {
 
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Customer Listing</CardTitle>
             <CardDescription>
               View and manage all customer records.
@@ -900,8 +867,87 @@ export default function Customers() {
             />
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+
+        <CardContent className="min-w-0">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedCustomers.length > 0 ? (
+              paginatedCustomers.map((customer) => (
+                <div
+                  key={customer.id}
+                  className="min-w-0 overflow-hidden rounded-xl border p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">
+                        ID #{customer.id}
+                      </p>
+                      <p className="break-words font-medium">
+                        {customer.firstName} {customer.lastName}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleViewClick(customer)}
+                        className="h-8 w-8"
+                        title="View Customer Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Email</p>
+                      <p className="mt-1 break-all text-sm text-muted-foreground">
+                        {customer.email}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">Phone</p>
+                        <p className="mt-1 break-words text-sm text-muted-foreground">
+                          {customer.phone || "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Created At
+                        </p>
+                        <p className="mt-1 break-words text-sm text-muted-foreground">
+                          {formatDate(customer.createdAt)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Users className="h-8 w-8 opacity-50" />
+                  <p>No customers found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden min-w-0 overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
@@ -918,7 +964,7 @@ export default function Customers() {
                 {paginatedCustomers.length > 0 ? (
                   paginatedCustomers.map((customer) => (
                     <TableRow key={customer.id} className="group">
-                      <TableCell className="font-mono text-sm text-center">
+                      <TableCell className="text-center font-mono text-sm">
                         {customer.id}
                       </TableCell>
                       <TableCell className="font-medium">
@@ -971,8 +1017,8 @@ export default function Customers() {
           </div>
 
           {filteredCustomers.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="mt-4 flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="min-w-0 break-words text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
                   {(currentPage - 1) * customersPerPage + 1}
@@ -988,7 +1034,7 @@ export default function Customers() {
                 <span className="font-medium">{filteredCustomers.length}</span>{" "}
                 customers
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -998,25 +1044,27 @@ export default function Customers() {
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
                 </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                  let page = index + 1;
-                  if (totalPages > 5 && currentPage > 3) {
-                    page = currentPage - 2 + index;
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let page = index + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
+                      if (page > totalPages) return null;
+                    }
                     if (page > totalPages) return null;
-                  }
-                  if (page > totalPages) return null;
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                      className="min-w-9"
-                    >
-                      {page}
-                    </Button>
-                  );
-                })}
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+                </div>
                 {totalPages > 5 && currentPage < totalPages - 2 && (
                   <>
                     <span className="px-2">...</span>
@@ -1053,7 +1101,7 @@ export default function Customers() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="modal-scroll max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Add New Customer</DialogTitle>
             <DialogDescription>
@@ -1061,8 +1109,12 @@ export default function Customers() {
             </DialogDescription>
           </DialogHeader>
           <CustomerFormFields />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button
+              variant="outline"
+              onClick={() => setIsAddOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
             <Button
@@ -1073,6 +1125,7 @@ export default function Customers() {
                 !formData.email ||
                 loading.adding
               }
+              className="w-full sm:w-auto"
             >
               {loading.adding && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1085,7 +1138,7 @@ export default function Customers() {
 
       {/* View Customer Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Customer Details</DialogTitle>
             <DialogDescription>
@@ -1095,48 +1148,48 @@ export default function Customers() {
 
           {viewCustomer && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {/* Basic Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <Users className="h-4 w-4" />
                     Basic Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Full Name
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.firstName} {viewCustomer.lastName}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Email
                       </p>
-                      <p className="text-sm font-medium break-all">
+                      <p className="break-all text-sm font-medium">
                         {viewCustomer.email}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Phone Number
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.phone || "—"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Joined Date
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {formatDate(viewCustomer.createdAt)}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Status
                       </p>
                       <span
@@ -1150,48 +1203,48 @@ export default function Customers() {
 
                 {/* Address Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <MapPin className="h-4 w-4" />
                     Address Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1 md:col-span-2">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 md:col-span-2 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Street Address
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.address.street || "—"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         City
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.address.city || "—"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         State
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.address.state || "—"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         ZIP Code
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.address.zipCode || "—"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Country
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewCustomer.address.country || "—"}
                       </p>
                     </div>
@@ -1200,32 +1253,32 @@ export default function Customers() {
               </div>
 
               {/* Statistics Section */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-lg border bg-card p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Total Orders
                       </p>
                       <p className="text-2xl font-bold">
                         {viewCustomer.orders.length}
                       </p>
                     </div>
-                    <ShoppingBag className="h-8 w-8 text-primary opacity-50" />
+                    <ShoppingBag className="h-8 w-8 shrink-0 text-primary opacity-50" />
                   </div>
                 </div>
 
                 <div className="rounded-lg border bg-card p-6">
                   <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Total Spent
                       </p>
-                      <p className="text-2xl font-bold">
+                      <p className="break-words text-2xl font-bold">
                         {formatCurrency(viewCustomer.totalSpent)}
                       </p>
                     </div>
-                    <DollarSign className="h-8 w-8 text-primary opacity-50" />
+                    <DollarSign className="h-8 w-8 shrink-0 text-primary opacity-50" />
                   </div>
                 </div>
               </div>
@@ -1233,20 +1286,20 @@ export default function Customers() {
               {/* Notes Section */}
               {viewCustomer.notes && (
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <AlertTriangle className="h-4 w-4" />
                     Notes
                   </h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
                     {viewCustomer.notes}
                   </p>
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {/* Rent & Lease Requests Section */}
-                <div className="rounded-lg border bg-card p-6 max-h-[300px] flex flex-col">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2 shrink-0">
+                <div className="flex max-h-[300px] flex-col rounded-lg border bg-card p-6">
+                  <h3 className="mb-4 flex shrink-0 items-center gap-2 text-base font-semibold">
                     <Calendar className="h-4 w-4" />
                     Rent & Lease Requests
                   </h3>
@@ -1264,11 +1317,9 @@ export default function Customers() {
                         {rentRequests.map((request) => (
                           <div
                             key={request.rent_id}
-                            className="border rounded-lg p-4 transition-colors hover:bg-muted/50"
+                            className="rounded-lg border p-4 transition-colors hover:bg-muted/50"
                           >
-                            {/* Product Header with Image and Name */}
-                            <div className="flex gap-4 mb-3">
-                              {/* Product Image */}
+                            <div className="mb-3 flex gap-4">
                               {request.product?.assets &&
                                 request.product.assets.length > 0 && (
                                   <div className="flex-shrink-0">
@@ -1277,7 +1328,7 @@ export default function Customers() {
                                         request.product.assets[0].asset_url,
                                       )}
                                       alt={request.product.product_name}
-                                      className="w-20 h-20 object-cover rounded-lg border"
+                                      className="h-20 w-20 rounded-lg border object-cover"
                                       onError={(e) => {
                                         (e.target as HTMLImageElement).src =
                                           "/placeholder-image.png";
@@ -1286,15 +1337,14 @@ export default function Customers() {
                                   </div>
                                 )}
 
-                              {/* Product Info */}
-                              <div className="flex-1">
-                                <div className="flex items-start justify-between gap-2 flex-wrap">
-                                  <div>
-                                    <p className="font-semibold text-base">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="break-words text-base font-semibold">
                                       {request.product?.product_name ||
                                         "Product"}
                                     </p>
-                                    <p className="text-xs text-muted-foreground mt-0.5">
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
                                       SKU: {request.product?.sku || "N/A"}
                                     </p>
                                   </div>
@@ -1308,8 +1358,7 @@ export default function Customers() {
                                   </span>
                                 </div>
 
-                                {/* Pricing */}
-                                <div className="flex flex-wrap gap-4 mt-2 text-sm">
+                                <div className="mt-2 flex flex-wrap gap-4 text-sm">
                                   {request.product?.sell_price && (
                                     <div className="flex items-center gap-1">
                                       <span className="text-muted-foreground">
@@ -1328,22 +1377,20 @@ export default function Customers() {
                               </div>
                             </div>
 
-                            <div className="border-t my-3" />
+                            <div className="my-3 border-t" />
 
-                            {/* Request Notes/Query */}
                             <div className="mb-3">
-                              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
+                              <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                 Request Notes
                               </p>
-                              <p className="text-sm bg-muted/30 p-3 rounded-md">
+                              <p className="rounded-md bg-muted/30 p-3 text-sm break-words">
                                 {request.query ||
                                   request.rent_note ||
                                   "No notes provided"}
                               </p>
                             </div>
 
-                            {/* Request Date */}
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                            <div className="flex flex-col gap-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                               <div className="flex items-center gap-2">
                                 <Clock className="h-3 w-3" />
                                 <span>
@@ -1364,12 +1411,12 @@ export default function Customers() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <Calendar className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
+                      <div className="py-8 text-center">
+                        <Calendar className="mx-auto mb-3 h-12 w-12 text-muted-foreground opacity-50" />
                         <p className="text-sm text-muted-foreground">
                           No rent or lease requests found
                         </p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="mt-1 text-xs text-muted-foreground">
                           This customer hasn't made any rental or lease requests
                           yet
                         </p>
@@ -1379,8 +1426,8 @@ export default function Customers() {
                 </div>
 
                 {/* Order History Section */}
-                <div className="rounded-lg border bg-card p-6 max-h-[320px] flex flex-col">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2 shrink-0">
+                <div className="flex max-h-[320px] flex-col rounded-lg border bg-card p-6">
+                  <h3 className="mb-4 flex shrink-0 items-center gap-2 text-base font-semibold">
                     <Package className="h-4 w-4" />
                     Order History
                   </h3>
@@ -1391,12 +1438,11 @@ export default function Customers() {
                         {viewCustomer.orders.map((order) => (
                           <div
                             key={order.id}
-                            className="border rounded-lg p-4 transition-colors hover:bg-muted/50"
+                            className="rounded-lg border p-4 transition-colors hover:bg-muted/50"
                           >
-                            {/* Order Header */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-                              <div>
-                                <p className="font-semibold text-sm">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="break-words text-sm font-semibold">
                                   {order.orderNumber}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
@@ -1409,26 +1455,27 @@ export default function Customers() {
                                 >
                                   {order.status}
                                 </span>
-                                <p className="font-bold text-lg">
+                                <p className="text-lg font-bold">
                                   {formatCurrency(order.total)}
                                 </p>
                               </div>
                             </div>
 
-                            <div className="border-t my-3" />
+                            <div className="my-3 border-t" />
 
-                            {/* Order Items */}
                             <div className="space-y-2">
                               {order.items.map((item, idx) => (
                                 <div
                                   key={idx}
-                                  className="flex items-center justify-between text-sm"
+                                  className="flex items-center justify-between gap-3 text-sm"
                                 >
-                                  <div className="flex items-center gap-2">
-                                    <Package className="h-3 w-3 text-muted-foreground" />
-                                    <span>{item.productName}</span>
+                                  <div className="flex min-w-0 items-center gap-2">
+                                    <Package className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                    <span className="break-words">
+                                      {item.productName}
+                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-4">
+                                  <div className="flex shrink-0 items-center gap-4">
                                     <span className="text-muted-foreground">
                                       x{item.quantity}
                                     </span>
@@ -1442,10 +1489,9 @@ export default function Customers() {
                               ))}
                             </div>
 
-                            {/* Invoice Buttons */}
                             {(order.transaction?.view_url ||
                               order.transaction?.download_url) && (
-                              <div className="mt-4 pt-3 border-t flex justify-end gap-2">
+                              <div className="mt-4 flex flex-col justify-end gap-2 border-t pt-3 sm:flex-row">
                                 {order.transaction.view_url && (
                                   <Button
                                     variant="outline"
@@ -1458,7 +1504,7 @@ export default function Customers() {
                                     }}
                                     className="text-sm"
                                   >
-                                    <Eye className="h-3 w-3 mr-1" />
+                                    <Eye className="mr-1 h-3 w-3" />
                                     View Receipt
                                   </Button>
                                 )}
@@ -1474,7 +1520,7 @@ export default function Customers() {
                                     }}
                                     className="text-sm"
                                   >
-                                    <Download className="h-3 w-3 mr-1" />
+                                    <Download className="mr-1 h-3 w-3" />
                                     Download Invoice
                                   </Button>
                                 )}
@@ -1484,8 +1530,8 @@ export default function Customers() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8">
-                        <ShoppingBag className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
+                      <div className="py-8 text-center">
+                        <ShoppingBag className="mx-auto mb-3 h-12 w-12 text-muted-foreground opacity-50" />
                         <p className="text-sm text-muted-foreground">
                           No orders yet
                         </p>

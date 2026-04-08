@@ -52,7 +52,6 @@ import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// Type definitions
 type Category = {
   c_id: number;
   category_name: string;
@@ -83,26 +82,19 @@ const emptyForm: CategoryForm = {
 };
 
 export default function CategoryPage() {
-  // State declarations
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState<string>("");
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(
-    new Date(),
-  );
+  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(new Date());
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState<boolean>(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
-    null,
-  );
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
-    {},
-  );
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [alert, setAlert] = useState<AlertType>({
     show: false,
     type: "success",
@@ -115,7 +107,6 @@ export default function CategoryPage() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const categoriesPerPage = 15;
 
-  // Format date and time
   const formatDateTime = useCallback((date: Date): string => {
     return date.toLocaleString("en-US", {
       year: "numeric",
@@ -128,18 +119,13 @@ export default function CategoryPage() {
     });
   }, []);
 
-  // Show alert
-  const showAlert = useCallback(
-    (type: "success" | "error", message: string) => {
-      setAlert({ show: true, type, message });
-      setTimeout(() => {
-        setAlert({ show: false, type: "success", message: "" });
-      }, 5000);
-    },
-    [],
-  );
+  const showAlert = useCallback((type: "success" | "error", message: string) => {
+    setAlert({ show: true, type, message });
+    setTimeout(() => {
+      setAlert({ show: false, type: "success", message: "" });
+    }, 5000);
+  }, []);
 
-  // Fetch all categories from API
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
@@ -160,15 +146,12 @@ export default function CategoryPage() {
     }
   }, []);
 
-  // Initial load
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Filter categories based on search
   const filteredCategories = useMemo(() => {
     const q = search.toLowerCase().trim();
-
     if (!q) return categories;
 
     return categories.filter((category) => {
@@ -182,10 +165,7 @@ export default function CategoryPage() {
   }, [categories, search]);
 
   const totalCategories = categories.length;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredCategories.length / categoriesPerPage),
-  );
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / categoriesPerPage));
 
   const paginatedCategories = useMemo(() => {
     const startIndex = (currentPage - 1) * categoriesPerPage;
@@ -193,16 +173,12 @@ export default function CategoryPage() {
     return filteredCategories.slice(startIndex, endIndex);
   }, [filteredCategories, currentPage]);
 
-  // Reset to first page when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [search]);
 
-  // Adjust current page if it exceeds total pages
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
   const handleInputChange = useCallback(
@@ -212,13 +188,14 @@ export default function CategoryPage() {
         ...prev,
         [name]: value,
       }));
-      // Clear validation error for this field when user starts typing
+
       if (name === "name" && validationErrors.category_name) {
         setValidationErrors((prev) => ({
           ...prev,
           category_name: undefined,
         }));
       }
+
       if (name === "description" && validationErrors.category_description) {
         setValidationErrors((prev) => ({
           ...prev,
@@ -244,18 +221,15 @@ export default function CategoryPage() {
     showAlert("success", "Categories refreshed successfully");
   }, [fetchCategories, showAlert]);
 
-  // CREATE CATEGORY
   const handleAddCategory = useCallback(async () => {
     const errors: ValidationErrors = {};
 
-    // Validate category name
     if (!formData.name.trim()) {
       errors.category_name = ["Category name is required"];
     } else if (formData.name.trim().length < 3) {
       errors.category_name = ["Category name must be at least 3 characters"];
     }
 
-    // Validate category description
     if (!formData.description.trim()) {
       errors.category_description = ["Category description is required"];
     } else if (formData.description.trim().length < 10) {
@@ -264,14 +238,10 @@ export default function CategoryPage() {
       ];
     }
 
-    // If there are validation errors, display them and return
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
-      // Show first error in alert
       const firstError = Object.values(errors)[0]?.[0];
-      if (firstError) {
-        showAlert("error", firstError);
-      }
+      if (firstError) showAlert("error", firstError);
       return;
     }
 
@@ -287,10 +257,7 @@ export default function CategoryPage() {
         resetForm();
         setIsAddOpen(false);
         setCurrentPage(1);
-        showAlert(
-          "success",
-          response.data.message || "Category created successfully",
-        );
+        showAlert("success", response.data.message || "Category created successfully");
       }
     } catch (err: any) {
       console.error("Error adding category:", err);
@@ -298,21 +265,15 @@ export default function CategoryPage() {
       if (err.response?.status === 422 && err.response?.data?.errors) {
         setValidationErrors(err.response.data.errors);
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        if (firstError) {
-          showAlert("error", firstError);
-        }
+        if (firstError) showAlert("error", firstError);
       } else {
-        showAlert(
-          "error",
-          err.response?.data?.message || "Failed to add category",
-        );
+        showAlert("error", err.response?.data?.message || "Failed to add category");
       }
     } finally {
       setIsSubmitting(false);
     }
   }, [formData, fetchCategories, resetForm, showAlert]);
 
-  // EDIT CATEGORY - Open edit modal
   const handleEditClick = useCallback((category: Category) => {
     setEditCategoryId(category.c_id);
     setFormData({
@@ -323,20 +284,17 @@ export default function CategoryPage() {
     setIsEditOpen(true);
   }, []);
 
-  // UPDATE CATEGORY - Submit edit
   const handleUpdateCategory = useCallback(async () => {
     if (editCategoryId === null) return;
 
     const errors: ValidationErrors = {};
 
-    // Validate category name
     if (!formData.name.trim()) {
       errors.category_name = ["Category name is required"];
     } else if (formData.name.trim().length < 3) {
       errors.category_name = ["Category name must be at least 3 characters"];
     }
 
-    // Validate category description
     if (!formData.description.trim()) {
       errors.category_description = ["Category description is required"];
     } else if (formData.description.trim().length < 10) {
@@ -345,14 +303,10 @@ export default function CategoryPage() {
       ];
     }
 
-    // If there are validation errors, display them and return
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
-      // Show first error in alert
       const firstError = Object.values(errors)[0]?.[0];
-      if (firstError) {
-        showAlert("error", firstError);
-      }
+      if (firstError) showAlert("error", firstError);
       return;
     }
 
@@ -367,10 +321,7 @@ export default function CategoryPage() {
         await fetchCategories();
         resetForm();
         setIsEditOpen(false);
-        showAlert(
-          "success",
-          response.data.message || "Category updated successfully",
-        );
+        showAlert("success", response.data.message || "Category updated successfully");
       }
     } catch (err: any) {
       console.error("Error updating category:", err);
@@ -378,29 +329,22 @@ export default function CategoryPage() {
       if (err.response?.status === 422 && err.response?.data?.errors) {
         setValidationErrors(err.response.data.errors);
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        if (firstError) {
-          showAlert("error", firstError);
-        }
+        if (firstError) showAlert("error", firstError);
       } else if (err.response?.status === 404) {
         showAlert("error", "Category not found");
       } else {
-        showAlert(
-          "error",
-          err.response?.data?.message || "Failed to update category",
-        );
+        showAlert("error", err.response?.data?.message || "Failed to update category");
       }
     } finally {
       setIsSubmitting(false);
     }
   }, [editCategoryId, formData, fetchCategories, resetForm, showAlert]);
 
-  // DELETE CATEGORY - Open delete confirmation
   const handleDeleteClick = useCallback((category: Category) => {
     setCategoryToDelete(category);
     setIsDeleteOpen(true);
   }, []);
 
-  // DELETE CATEGORY - Confirm deletion
   const handleConfirmDelete = useCallback(async () => {
     if (!categoryToDelete) return;
 
@@ -412,15 +356,9 @@ export default function CategoryPage() {
         await fetchCategories();
         setIsDeleteOpen(false);
         setCategoryToDelete(null);
-        showAlert(
-          "success",
-          response.data.message || "Category deleted successfully",
-        );
+        showAlert("success", response.data.message || "Category deleted successfully");
 
-        // Adjust current page if needed
-        const newTotalPages = Math.ceil(
-          (categories.length - 1) / categoriesPerPage,
-        );
+        const newTotalPages = Math.ceil((categories.length - 1) / categoriesPerPage);
         if (currentPage > newTotalPages && newTotalPages > 0) {
           setCurrentPage(newTotalPages);
         }
@@ -430,10 +368,7 @@ export default function CategoryPage() {
       if (err.response?.status === 404) {
         showAlert("error", "Category not found");
       } else {
-        showAlert(
-          "error",
-          err.response?.data?.message || "Failed to delete category",
-        );
+        showAlert("error", err.response?.data?.message || "Failed to delete category");
       }
     } finally {
       setIsSubmitting(false);
@@ -443,7 +378,6 @@ export default function CategoryPage() {
     fetchCategories,
     currentPage,
     categories.length,
-    categoriesPerPage,
     showAlert,
   ]);
 
@@ -455,7 +389,6 @@ export default function CategoryPage() {
     [totalPages],
   );
 
-  // Form fields component with validation errors
   const CategoryFormFields = useMemo(() => {
     return (
       <div className="grid gap-4 py-2">
@@ -471,9 +404,7 @@ export default function CategoryPage() {
             placeholder="Enter category name"
             autoComplete="off"
             autoFocus
-            className={
-              validationErrors.category_name ? "border-destructive" : ""
-            }
+            className={validationErrors.category_name ? "border-destructive" : ""}
           />
           {validationErrors.category_name && (
             <p className="text-sm text-destructive">
@@ -505,43 +436,36 @@ export default function CategoryPage() {
         </div>
       </div>
     );
-  }, [
-    formData.name,
-    formData.description,
-    handleInputChange,
-    validationErrors,
-  ]);
+  }, [formData.name, formData.description, handleInputChange, validationErrors]);
 
-  // Loading skeleton for categories
   if (loading && categories.length === 0) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-64 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-48 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
           </div>
         </div>
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             <p className="mt-4 text-muted-foreground">Loading...</p>
           </div>
         </div>
@@ -549,10 +473,9 @@ export default function CategoryPage() {
     );
   }
 
-  // Error state
   if (error && categories.length === 0) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
+      <div className="flex h-[50vh] items-center justify-center px-4">
         <div className="text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-destructive" />
           <p className="mt-2 text-sm text-destructive">{error}</p>
@@ -565,10 +488,9 @@ export default function CategoryPage() {
   }
 
   return (
-    <div className="space-y-6 p-6 relative">
-      {/* Alert Component - Positioned at top center */}
+    <div className="relative space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="fixed top-16 right-4 z-50 w-[calc(100%-2rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -586,33 +508,34 @@ export default function CategoryPage() {
         </div>
       )}
 
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">All Categories</h1>
           <p className="text-sm text-muted-foreground">
             Manage category records with full CRUD operations
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Clock className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
             />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button onClick={() => setIsAddOpen(true)}>
+          <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Add Category
           </Button>
@@ -621,11 +544,11 @@ export default function CategoryPage() {
 
       <Separator />
 
-      {/* Stats Cards */}
+      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Total Categories</p>
               <h3 className="mt-1 text-2xl font-bold">{totalCategories}</h3>
             </div>
@@ -637,11 +560,9 @@ export default function CategoryPage() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Filtered Records</p>
-              <h3 className="mt-1 text-2xl font-bold">
-                {filteredCategories.length}
-              </h3>
+              <h3 className="mt-1 text-2xl font-bold">{filteredCategories.length}</h3>
             </div>
             <div className="rounded-2xl bg-blue-100 p-3">
               <Tags className="h-5 w-5 text-blue-700" />
@@ -649,9 +570,9 @@ export default function CategoryPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-sm">
+        <Card className="rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Current Page</p>
               <h3 className="mt-1 text-2xl font-bold">
                 {currentPage} / {totalPages}
@@ -664,10 +585,10 @@ export default function CategoryPage() {
         </Card>
       </div>
 
-      {/* Main Table Card */}
+      {/* Main card */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Category Listing</CardTitle>
             <CardDescription>
               View, add, edit, and delete all category records
@@ -686,7 +607,69 @@ export default function CategoryPage() {
         </CardHeader>
 
         <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedCategories.length > 0 ? (
+              paginatedCategories.map((category) => (
+                <div key={category.c_id} className="rounded-xl border p-4 shadow-sm">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-muted-foreground">ID #{category.c_id}</p>
+                      <p className="font-medium break-words">{category.category_name}</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleEditClick(category)}
+                        className="h-8 w-8"
+                        title="Edit category"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDeleteClick(category)}
+                        className="h-8 w-8 hover:text-destructive"
+                        title="Delete category"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">Description</p>
+                    <p className="mt-1 text-sm break-words text-muted-foreground">
+                      {category.category_description || "—"}
+                    </p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Tags className="h-8 w-8 opacity-50" />
+                  <p>No categories found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
@@ -701,14 +684,14 @@ export default function CategoryPage() {
                 {paginatedCategories.length > 0 ? (
                   paginatedCategories.map((category) => (
                     <TableRow key={category.c_id}>
-                      <TableCell className="font-mono text-sm text-center">
+                      <TableCell className="text-center font-mono text-sm">
                         {category.c_id}
                       </TableCell>
                       <TableCell>
                         <p className="font-medium">{category.category_name}</p>
                       </TableCell>
                       <TableCell className="max-w-[500px]">
-                        <p className="text-sm text-muted-foreground line-clamp-2">
+                        <p className="line-clamp-2 text-sm text-muted-foreground">
                           {category.category_description || "—"}
                         </p>
                       </TableCell>
@@ -764,7 +747,7 @@ export default function CategoryPage() {
 
           {/* Pagination */}
           {filteredCategories.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
@@ -772,17 +755,14 @@ export default function CategoryPage() {
                 </span>{" "}
                 to{" "}
                 <span className="font-medium">
-                  {Math.min(
-                    currentPage * categoriesPerPage,
-                    filteredCategories.length,
-                  )}
+                  {Math.min(currentPage * categoriesPerPage, filteredCategories.length)}
                 </span>{" "}
                 of{" "}
                 <span className="font-medium">{filteredCategories.length}</span>{" "}
                 categories
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -793,30 +773,28 @@ export default function CategoryPage() {
                   Prev
                 </Button>
 
-                <div className="flex items-center gap-1">
-                  {Array.from(
-                    { length: Math.min(5, totalPages) },
-                    (_, index) => {
-                      let page = index + 1;
-                      if (totalPages > 5 && currentPage > 3) {
-                        page = currentPage - 2 + index;
-                        if (page > totalPages) return null;
-                      }
+                <div className="flex flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let page = index + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
                       if (page > totalPages) return null;
+                    }
+                    if (page > totalPages) return null;
 
-                      return (
-                        <Button
-                          key={page}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => handlePageChange(page)}
-                          className="min-w-9"
-                        >
-                          {page}
-                        </Button>
-                      );
-                    },
-                  )}
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+
                   {totalPages > 5 && currentPage < totalPages - 2 && (
                     <>
                       <span className="px-2">...</span>
@@ -847,7 +825,7 @@ export default function CategoryPage() {
         </CardContent>
       </Card>
 
-      {/* Add Category Modal */}
+      {/* Add dialog */}
       <Dialog
         open={isAddOpen}
         onOpenChange={(open) => {
@@ -855,7 +833,7 @@ export default function CategoryPage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add New Category</DialogTitle>
             <DialogDescription>
@@ -867,21 +845,19 @@ export default function CategoryPage() {
 
           {CategoryFormFields}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setIsAddOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleAddCategory} disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+            <Button onClick={handleAddCategory} disabled={isSubmitting} className="w-full sm:w-auto">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Add Category
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Category Modal */}
+      {/* Edit dialog */}
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => {
@@ -889,7 +865,7 @@ export default function CategoryPage() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Category</DialogTitle>
             <DialogDescription>
@@ -900,48 +876,45 @@ export default function CategoryPage() {
 
           {CategoryFormFields}
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row">
+            <Button variant="outline" onClick={() => setIsEditOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button onClick={handleUpdateCategory} disabled={isSubmitting}>
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+            <Button onClick={handleUpdateCategory} disabled={isSubmitting} className="w-full sm:w-auto">
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Update Category
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete dialog */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl sm:max-w-lg">
           <DialogHeader>
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-red-100">
                 <AlertTriangle className="h-6 w-6 text-red-600" />
               </div>
               <DialogTitle className="text-xl">Confirm Delete</DialogTitle>
             </div>
-            <DialogDescription className="pt-4">
+            <DialogDescription className="pt-4 break-words">
               Are you sure you want to delete the category "
               {categoryToDelete?.category_name}"? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="gap-2 sm:gap-3">
-            <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:gap-3">
+            <Button variant="outline" onClick={() => setIsDeleteOpen(false)} className="w-full sm:w-auto">
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleConfirmDelete}
               disabled={isSubmitting}
+              className="w-full sm:w-auto"
             >
-              {isSubmitting && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete Category
             </Button>
           </DialogFooter>

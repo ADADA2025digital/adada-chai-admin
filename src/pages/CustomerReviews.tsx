@@ -178,7 +178,6 @@ export default function CustomerReviews() {
         if (response.data.status === "success") {
           const apiReviews: ApiReview[] = response.data.data || [];
 
-          // Latest review first
           const sortedReviews = [...apiReviews].sort(
             (a, b) => b.re_id - a.re_id,
           );
@@ -354,7 +353,7 @@ export default function CustomerReviews() {
         {Array.from({ length: 5 }, (_, index) => (
           <Star
             key={index}
-            className={`h-4 w-4 ${
+            className={`h-4 w-4 shrink-0 ${
               index < rating
                 ? "fill-yellow-400 text-yellow-400"
                 : "text-slate-300"
@@ -367,7 +366,7 @@ export default function CustomerReviews() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <div className="h-8 w-48 animate-pulse rounded bg-muted" />
@@ -391,7 +390,7 @@ export default function CustomerReviews() {
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
             <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary"></div>
             <p className="mt-4 text-muted-foreground">Loading...</p>
@@ -402,9 +401,9 @@ export default function CustomerReviews() {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="relative min-w-0 overflow-x-hidden space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="animate-in slide-in-from-top-2 fade-in fixed right-4 top-16 z-[9999] w-full max-w-sm duration-300">
+        <div className="animate-in slide-in-from-top-2 fade-in fixed right-3 top-16 z-[9999] w-[calc(100%-1.5rem)] max-w-sm duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -412,7 +411,7 @@ export default function CustomerReviews() {
               <XCircle className="h-5 w-5" />
             )}
 
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <AlertTitle>
                 {alert.type === "success" ? "Success" : "Error"}
               </AlertTitle>
@@ -422,8 +421,8 @@ export default function CustomerReviews() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">
             Customer Reviews
           </h1>
@@ -432,18 +431,19 @@ export default function CustomerReviews() {
           </p>
 
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={isRefreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
               className={cn("mr-2 h-4 w-4", isRefreshing && "animate-spin")}
@@ -458,11 +458,11 @@ export default function CustomerReviews() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Total Reviews</p>
               <h3 className="mt-1 text-2xl font-bold">{totalReviews}</h3>
             </div>
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="shrink-0 rounded-2xl bg-primary/10 p-3">
               <MessageSquareText className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
@@ -470,11 +470,11 @@ export default function CustomerReviews() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Approved</p>
               <h3 className="mt-1 text-2xl font-bold">{approvedReviews}</h3>
             </div>
-            <div className="rounded-2xl bg-green-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-green-100 p-3">
               <CheckCircle className="h-5 w-5 text-green-700" />
             </div>
           </CardContent>
@@ -482,11 +482,11 @@ export default function CustomerReviews() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Pending</p>
               <h3 className="mt-1 text-2xl font-bold">{pendingReviews}</h3>
             </div>
-            <div className="rounded-2xl bg-yellow-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-yellow-100 p-3">
               <Clock3 className="h-5 w-5 text-yellow-700" />
             </div>
           </CardContent>
@@ -494,11 +494,11 @@ export default function CustomerReviews() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Average Rating</p>
               <h3 className="mt-1 text-2xl font-bold">{averageRating}</h3>
             </div>
-            <div className="rounded-2xl bg-yellow-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-yellow-100 p-3">
               <Star className="h-5 w-5 fill-yellow-400 text-yellow-600" />
             </div>
           </CardContent>
@@ -507,7 +507,7 @@ export default function CustomerReviews() {
 
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Review Listing</CardTitle>
             <CardDescription>
               View and manage all customer reviews.
@@ -525,8 +525,130 @@ export default function CustomerReviews() {
           </div>
         </CardHeader>
 
-        <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+        <CardContent className="min-w-0">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedReviews.length > 0 ? (
+              paginatedReviews.map((review) => (
+                <div
+                  key={review.id}
+                  className="min-w-0 overflow-hidden rounded-xl border p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">
+                        {review.reviewId}
+                      </p>
+                      <p className="break-words font-medium">
+                        {review.productName}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleViewClick(review)}
+                        className="h-8 w-8"
+                        title="View Review Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Order ID</p>
+                      <p className="mt-1 break-words text-sm font-medium">
+                        {review.orderId}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Customer</p>
+                      <p className="mt-1 break-words text-sm font-medium">
+                        {review.customerName}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        {review.email}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">Rating</p>
+                        <div className="mt-1 space-y-1">
+                          <StarRating rating={review.rating} />
+                          <span className="text-xs text-muted-foreground">
+                            {review.rating}/5
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <div className="mt-1">
+                          <span
+                            className={`inline-flex max-w-full items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(
+                              review.status,
+                            )}`}
+                          >
+                            {getStatusIcon(review.status)}
+                            <span className="break-words">
+                              {getStatusText(review.status)}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Comment</p>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {review.comment}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Images</p>
+                      <div className="mt-1">
+                        {review.images.length > 0 ? (
+                          <div className="flex items-center gap-1">
+                            <ImageIcon className="h-4 w-4 text-blue-500" />
+                            <span className="text-xs">
+                              {review.images.length}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-muted-foreground">—</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <MessageSquareText className="h-8 w-8 opacity-50" />
+                  <p>No reviews found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden min-w-0 overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
@@ -633,8 +755,8 @@ export default function CustomerReviews() {
           </div>
 
           {filteredReviews.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="mt-4 flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="min-w-0 break-words text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
                   {(currentPage - 1) * reviewsPerPage + 1}
@@ -650,7 +772,7 @@ export default function CustomerReviews() {
                 reviews
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -661,42 +783,44 @@ export default function CustomerReviews() {
                   Prev
                 </Button>
 
-                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                  let page = index + 1;
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let page = index + 1;
 
-                  if (totalPages > 5 && currentPage > 3) {
-                    page = currentPage - 2 + index;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
+                      if (page > totalPages) return null;
+                    }
+
                     if (page > totalPages) return null;
-                  }
 
-                  if (page > totalPages) return null;
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
 
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                      className="min-w-9"
-                    >
-                      {page}
-                    </Button>
-                  );
-                })}
-
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <>
-                    <span className="px-2">...</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(totalPages)}
-                      className="min-w-9"
-                    >
-                      {totalPages}
-                    </Button>
-                  </>
-                )}
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="px-2">...</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(totalPages)}
+                        className="min-w-9"
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
 
                 <Button
                   variant="outline"
@@ -714,7 +838,7 @@ export default function CustomerReviews() {
       </Card>
 
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="modal-scroll max-h-[80vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Review Details</DialogTitle>
             <DialogDescription>
@@ -731,28 +855,30 @@ export default function CustomerReviews() {
                 </h3>
 
                 <div className="grid gap-4 md:grid-cols-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Review ID</p>
-                    <p className="font-mono text-sm font-medium">
+                    <p className="break-words font-mono text-sm font-medium">
                       {viewReview.reviewId}
                     </p>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Order ID</p>
-                    <p className="font-mono text-sm font-medium">
+                    <p className="break-words font-mono text-sm font-medium">
                       {viewReview.orderId}
                     </p>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Product</p>
-                    <p className="font-medium">{viewReview.productName}</p>
+                    <p className="break-words font-medium">
+                      {viewReview.productName}
+                    </p>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Rating</p>
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 flex flex-wrap items-center gap-2">
                       <StarRating rating={viewReview.rating} />
                       <span className="text-sm font-medium">
                         ({viewReview.rating}/5)
@@ -760,7 +886,7 @@ export default function CustomerReviews() {
                     </div>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Status</p>
                     <span
                       className={`mt-1 inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusClasses(
@@ -772,14 +898,16 @@ export default function CustomerReviews() {
                     </span>
                   </div>
 
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-muted-foreground">Date</p>
-                    <p className="font-medium">{formatDate(viewReview.date)}</p>
+                    <p className="break-words font-medium">
+                      {formatDate(viewReview.date)}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 <div className="rounded-xl border p-4">
                   <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
                     <Users className="h-5 w-5" />
@@ -787,14 +915,18 @@ export default function CustomerReviews() {
                   </h3>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Name</p>
-                      <p className="font-medium">{viewReview.customerName}</p>
+                      <p className="break-words font-medium">
+                        {viewReview.customerName}
+                      </p>
                     </div>
 
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="font-medium">{viewReview.email}</p>
+                      <p className="break-all font-medium">
+                        {viewReview.email}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -804,11 +936,13 @@ export default function CustomerReviews() {
                     <MessageSquareText className="h-5 w-5" />
                     Customer Comment
                   </h3>
-                  <p className="text-sm leading-relaxed">{viewReview.comment}</p>
+                  <p className="break-words text-sm leading-relaxed">
+                    {viewReview.comment}
+                  </p>
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {viewReview.images.length > 0 && (
                   <div className="rounded-xl border p-4">
                     <h3 className="mb-4 flex items-center gap-2 text-lg font-semibold">
@@ -816,7 +950,7 @@ export default function CustomerReviews() {
                       Review Images
                     </h3>
 
-                    <div className="grid grid-cols-2 gap-4 md:grid-cols-2">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {viewReview.images.map((image, index) => (
                         <div key={index} className="group relative">
                           <img
@@ -840,7 +974,7 @@ export default function CustomerReviews() {
                     Review Actions
                   </h3>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <Button
                       onClick={handleApproveReview}
                       disabled={viewReview.status === "approved" || isUpdating}
@@ -870,23 +1004,27 @@ export default function CustomerReviews() {
                   </div>
 
                   {viewReview.status === "approved" && (
-                    <p className="mt-3 flex items-center gap-1 text-sm text-green-600">
-                      <CheckCircle className="h-3 w-3" />
-                      This review has been approved and is visible to customers
+                    <p className="mt-3 flex items-start gap-1 text-sm text-green-600">
+                      <CheckCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>
+                        This review has been approved and is visible to customers
+                      </span>
                     </p>
                   )}
 
                   {viewReview.status === "rejected" && (
-                    <p className="mt-3 flex items-center gap-1 text-sm text-red-600">
-                      <XCircle className="h-3 w-3" />
-                      This review has been rejected and is hidden from customers
+                    <p className="mt-3 flex items-start gap-1 text-sm text-red-600">
+                      <XCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>
+                        This review has been rejected and is hidden from customers
+                      </span>
                     </p>
                   )}
 
                   {viewReview.status === "pending" && (
-                    <p className="mt-3 flex items-center gap-1 text-sm text-yellow-600">
-                      <Clock3 className="h-3 w-3" />
-                      This review is pending approval
+                    <p className="mt-3 flex items-start gap-1 text-sm text-yellow-600">
+                      <Clock3 className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>This review is pending approval</span>
                     </p>
                   )}
                 </div>

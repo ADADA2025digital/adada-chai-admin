@@ -134,7 +134,19 @@ export function Header() {
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              className="h-12 rounded-[10px] border border-white/60 bg-white/90 px-2 shadow-sm backdrop-blur-xl transition-all duration-300 hover:border-white hover:bg-zinc-50 hover:shadow-md dark:border-white/20 dark:bg-[#1f2329]/95 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.45)] dark:hover:border-white/40 dark:hover:bg-[#22272e] dark:hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_10px_28px_rgba(0,0,0,0.52)]"
+              className="
+    h-12 rounded-[10px] px-2 transition-all duration-300
+
+    border-0 bg-transparent shadow-none
+
+    sm:border sm:border-white/60 sm:bg-white/90 sm:shadow-sm sm:backdrop-blur-xl
+    sm:hover:border-white sm:hover:bg-zinc-50 sm:hover:shadow-md
+
+    dark:sm:border-white/20 dark:sm:bg-[#1f2329]/95
+    dark:sm:shadow-[0_0_0_1px_rgba(255,255,255,0.06),0_8px_24px_rgba(0,0,0,0.45)]
+    dark:sm:hover:border-white/40 dark:sm:hover:bg-[#22272e]
+    dark:sm:hover:shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_10px_28px_rgba(0,0,0,0.52)]
+  "
             >
               <div className="flex items-center gap-3">
                 <Avatar className="h-9 w-9 ring-2 ring-blue-200 dark:ring-blue-400/30">

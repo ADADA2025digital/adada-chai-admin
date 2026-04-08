@@ -45,7 +45,6 @@ import {
   Edit,
   ShoppingCart,
   FileText,
-  CreditCard,
   DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -61,7 +60,6 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-// Rent Request Interface
 interface RentRequest {
   rent_id: number;
   customer_id: number;
@@ -114,14 +112,12 @@ type LoadingState = {
   processingRefund: boolean;
 };
 
-// Alert interface
 interface AlertState {
   show: boolean;
   type: "success" | "error";
   message: string;
 }
 
-// Status badge component
 const StatusBadge = ({ status }: { status?: string }) => {
   const statusConfig = {
     pending: {
@@ -164,15 +160,17 @@ const StatusBadge = ({ status }: { status?: string }) => {
 
   return (
     <Badge
-      className={`${config.color} font-medium inline-flex items-center gap-1`}
+      className={cn(
+        config.color,
+        "inline-flex max-w-full items-center gap-1 break-words font-medium",
+      )}
     >
-      <Icon className="h-3 w-3" />
-      {config.label}
+      <Icon className="h-3 w-3 shrink-0" />
+      <span className="break-words">{config.label}</span>
     </Badge>
   );
 };
 
-// Product Image component
 const ProductImage = ({
   product,
   className,
@@ -209,7 +207,10 @@ const ProductImage = ({
   if (!imageUrl) {
     return (
       <div
-        className={`bg-primary/10 rounded-lg flex items-center justify-center ${className || "h-10 w-10"}`}
+        className={cn(
+          "flex items-center justify-center rounded-lg bg-primary/10",
+          className || "h-10 w-10",
+        )}
       >
         <Package className="h-5 w-5 text-primary" />
       </div>
@@ -218,7 +219,10 @@ const ProductImage = ({
 
   return (
     <div
-      className={`relative rounded-lg overflow-hidden bg-gray-100 ${className || "h-10 w-10"}`}
+      className={cn(
+        "relative overflow-hidden rounded-lg bg-gray-100",
+        className || "h-10 w-10",
+      )}
     >
       <img
         src={imageUrl}
@@ -250,7 +254,6 @@ export default function ProductRentLease() {
     completed: 0,
   });
 
-  // Alert state
   const [alert, setAlert] = useState<AlertState>({
     show: false,
     type: "success",
@@ -276,7 +279,6 @@ export default function ProductRentLease() {
   const [currentPage, setCurrentPage] = useState(1);
   const requestsPerPage = 15;
 
-  // Show alert function with auto-dismiss
   const showAlert = useCallback(
     (type: "success" | "error", message: string) => {
       setAlert({ show: true, type, message });
@@ -287,7 +289,6 @@ export default function ProductRentLease() {
     [],
   );
 
-  // Fetch all rent requests from API
   const fetchRentRequests = useCallback(
     async (showLoading = true, showSuccessAlert = false) => {
       try {
@@ -297,12 +298,10 @@ export default function ProductRentLease() {
         setError(null);
 
         const response = await api.get("/admin/rent/requests");
-        console.log("✅ Rent requests API response:", response.data);
 
         if (response.data.status === "success") {
           let requests: RentRequest[] = [];
 
-          // Handle the response structure from your admin endpoint
           if (
             response.data.data &&
             Array.isArray(response.data.data.rent_requests)
@@ -311,17 +310,14 @@ export default function ProductRentLease() {
           } else if (Array.isArray(response.data.data)) {
             requests = response.data.data;
           } else {
-            console.error("❌ Unexpected response format:", response.data);
             throw new Error("Invalid response format from server");
           }
 
           setRentRequests(requests);
 
-          // Set statistics from API response
           if (response.data.statistics) {
             setStatistics(response.data.statistics);
           } else {
-            // Calculate statistics if not provided
             setStatistics({
               total: requests.length,
               pending: requests.filter((r) => r.rent_status === "pending")
@@ -343,16 +339,9 @@ export default function ProductRentLease() {
             showAlert("success", "Rent requests refreshed successfully!");
           }
         } else {
-          console.error("❌ Invalid response format:", response.data);
           throw new Error("Invalid response format from server");
         }
       } catch (err: any) {
-        console.error("❌ Error fetching rent requests:", {
-          message: err.message,
-          status: err.response?.status,
-          data: err.response?.data,
-        });
-
         const errorMessage =
           err.response?.data?.message ||
           err.message ||
@@ -372,12 +361,8 @@ export default function ProductRentLease() {
     [showAlert],
   );
 
-  // Update rent request status (Admin)
   const handleUpdateStatus = useCallback(async () => {
-    if (!statusUpdateRequest || !statusUpdateData.rent_status) {
-      console.error("❌ No request or status to update");
-      return;
-    }
+    if (!statusUpdateRequest || !statusUpdateData.rent_status) return;
 
     setLoading((prev) => ({ ...prev, updatingStatus: true }));
 
@@ -391,7 +376,6 @@ export default function ProductRentLease() {
       );
 
       if (response.data.status === "success") {
-        // Update local state
         setRentRequests((prev) =>
           prev.map((req) =>
             req.rent_id === statusUpdateRequest.rent_id
@@ -405,14 +389,12 @@ export default function ProductRentLease() {
           ),
         );
 
-        // Update statistics
         setStatistics((prevStats) => {
           const oldStatus = statusUpdateRequest.rent_status;
           const newStatus = statusUpdateData.rent_status;
 
           const updatedStats = { ...prevStats };
 
-          // Decrement old status count
           if (oldStatus === "pending")
             updatedStats.pending = Math.max(0, updatedStats.pending - 1);
           if (oldStatus === "approved")
@@ -424,7 +406,6 @@ export default function ProductRentLease() {
           if (oldStatus === "completed")
             updatedStats.completed = Math.max(0, updatedStats.completed - 1);
 
-          // Increment new status count
           if (newStatus === "pending") updatedStats.pending++;
           if (newStatus === "approved") updatedStats.approved++;
           if (newStatus === "rejected") updatedStats.rejected++;
@@ -445,7 +426,6 @@ export default function ProductRentLease() {
         throw new Error("Failed to update status");
       }
     } catch (err: any) {
-      console.error("❌ Error updating status:", err);
       const errorMessage =
         err.response?.data?.message || err.message || "Failed to update status";
       showAlert("error", errorMessage);
@@ -454,7 +434,6 @@ export default function ProductRentLease() {
     }
   }, [statusUpdateRequest, statusUpdateData, showAlert]);
 
-  // Process refund for rejected/cancelled requests
   const handleProcessRefund = useCallback(async () => {
     if (!refundRequest) return;
 
@@ -467,7 +446,6 @@ export default function ProductRentLease() {
       });
 
       if (response.data.status === "success") {
-        // Update payment status and refund flag in local state
         setRentRequests((prev) =>
           prev.map((req) =>
             req.rent_id === refundRequest.rent_id
@@ -489,7 +467,6 @@ export default function ProductRentLease() {
         throw new Error("Failed to process refund");
       }
     } catch (err: any) {
-      console.error("❌ Error processing refund:", err);
       const errorMessage =
         err.response?.data?.message || err.message || "Failed to process refund";
       showAlert("error", errorMessage);
@@ -519,13 +496,12 @@ export default function ProductRentLease() {
     }).format(numAmount || 0);
   };
 
-  // Filter requests based on search
   const filteredRequests = useMemo(() => {
     const q = search.toLowerCase().trim();
 
     if (!q) return rentRequests;
 
-    const filtered = rentRequests.filter((request) => {
+    return rentRequests.filter((request) => {
       const customerName = request.customer?.full_name?.toLowerCase() || "";
       const customerEmail = request.customer?.email?.toLowerCase() || "";
       const customerPhone = request.customer?.ph_number?.toLowerCase() || "";
@@ -543,8 +519,6 @@ export default function ProductRentLease() {
         query.includes(q)
       );
     });
-
-    return filtered;
   }, [rentRequests, search]);
 
   const totalPages = Math.max(
@@ -568,7 +542,6 @@ export default function ProductRentLease() {
     }
   }, [currentPage, totalPages]);
 
-  // Initial fetch
   useEffect(() => {
     fetchRentRequests(true, false);
   }, [fetchRentRequests]);
@@ -611,33 +584,32 @@ export default function ProductRentLease() {
 
   if (loading.fetching && rentRequests.length === 0) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <div className="h-8 w-64 bg-muted animate-pulse rounded" />
-            <div className="mt-2 h-4 w-96 bg-muted animate-pulse rounded" />
+            <div className="h-8 w-64 animate-pulse rounded bg-muted" />
+            <div className="mt-2 h-4 w-96 animate-pulse rounded bg-muted" />
           </div>
         </div>
         <Separator />
 
-        {/* Stats loading skeleton */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <Card key={i} className="rounded-2xl shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
                 <div>
-                  <div className="h-4 w-20 bg-muted animate-pulse rounded" />
-                  <div className="mt-1 h-8 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+                  <div className="mt-1 h-8 w-12 animate-pulse rounded bg-muted" />
                 </div>
-                <div className="rounded-2xl bg-muted p-3 animate-pulse h-11 w-11" />
+                <div className="h-11 w-11 animate-pulse rounded-2xl bg-muted p-3" />
               </CardContent>
             </Card>
           ))}
         </div>
 
-        <div className="flex h-[60vh] items-center justify-center">
+        <div className="flex h-[50vh] items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <div className="mx-auto h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
             <p className="mt-4 text-muted-foreground">
               Loading rent requests...
             </p>
@@ -648,10 +620,9 @@ export default function ProductRentLease() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      {/* Alert Notification */}
+    <div className="relative min-w-0 overflow-x-hidden space-y-4 px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
-        <div className="fixed top-16 right-4 z-[9999] w-full max-w-sm animate-in slide-in-from-top-2 fade-in duration-300">
+        <div className="fixed right-3 top-16 z-[9999] w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert variant={alert.type === "success" ? "default" : "destructive"}>
             {alert.type === "success" ? (
               <CheckCircle className="h-5 w-5" />
@@ -659,7 +630,7 @@ export default function ProductRentLease() {
               <XCircle className="h-5 w-5" />
             )}
 
-            <div className="flex flex-col">
+            <div className="flex min-w-0 flex-col">
               <AlertTitle>
                 {alert.type === "success" ? "Success" : "Error"}
               </AlertTitle>
@@ -670,33 +641,32 @@ export default function ProductRentLease() {
       )}
 
       {/* Header Section */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-            <Package className="h-6 w-6" />
-            Product Rent & Lease Management
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="flex min-w-0 items-center gap-2 text-2xl font-bold tracking-tight">
+            <Package className="h-6 w-6 shrink-0" />
+            <span className="break-words">Product Rent & Lease Management</span>
           </h1>
           <p className="text-sm text-muted-foreground">
             Manage and track all product rental and lease requests.
           </p>
           {lastRefreshTime && (
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <RefreshCw className="h-3 w-3" />
               <span>Last updated: {formatDateTime(lastRefreshTime)}</span>
             </div>
           )}
         </div>
-        <div className="flex flex-wrap gap-3">
+
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={loading.refreshing}
+            className="w-full sm:w-auto"
           >
             <RefreshCw
-              className={cn(
-                "mr-2 h-4 w-4",
-                loading.refreshing && "animate-spin",
-              )}
+              className={cn("mr-2 h-4 w-4", loading.refreshing && "animate-spin")}
             />
             {loading.refreshing ? "Refreshing..." : "Refresh"}
           </Button>
@@ -706,10 +676,10 @@ export default function ProductRentLease() {
       <Separator />
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4" />
-            <span className="text-sm">{error}</span>
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <span className="min-w-0 break-words text-sm">{error}</span>
             <Button
               variant="ghost"
               size="sm"
@@ -726,11 +696,11 @@ export default function ProductRentLease() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Total Requests</p>
               <h3 className="mt-1 text-2xl font-bold">{statistics.total}</h3>
             </div>
-            <div className="rounded-2xl bg-primary/10 p-3">
+            <div className="shrink-0 rounded-2xl bg-primary/10 p-3">
               <ShoppingCart className="h-5 w-5 text-primary" />
             </div>
           </CardContent>
@@ -738,13 +708,13 @@ export default function ProductRentLease() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Pending</p>
               <h3 className="mt-1 text-2xl font-bold text-yellow-600">
                 {statistics.pending}
               </h3>
             </div>
-            <div className="rounded-2xl bg-yellow-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-yellow-100 p-3">
               <Clock className="h-5 w-5 text-yellow-700" />
             </div>
           </CardContent>
@@ -752,13 +722,13 @@ export default function ProductRentLease() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Approved</p>
               <h3 className="mt-1 text-2xl font-bold text-green-600">
                 {statistics.approved}
               </h3>
             </div>
-            <div className="rounded-2xl bg-green-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-green-100 p-3">
               <CheckCircle className="h-5 w-5 text-green-700" />
             </div>
           </CardContent>
@@ -766,13 +736,13 @@ export default function ProductRentLease() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Rejected</p>
               <h3 className="mt-1 text-2xl font-bold text-red-600">
                 {statistics.rejected}
               </h3>
             </div>
-            <div className="rounded-2xl bg-red-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-red-100 p-3">
               <XCircle className="h-5 w-5 text-red-700" />
             </div>
           </CardContent>
@@ -780,13 +750,13 @@ export default function ProductRentLease() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Cancelled</p>
               <h3 className="mt-1 text-2xl font-bold text-gray-600">
                 {statistics.cancelled}
               </h3>
             </div>
-            <div className="rounded-2xl bg-gray-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-gray-100 p-3">
               <XCircle className="h-5 w-5 text-gray-700" />
             </div>
           </CardContent>
@@ -794,13 +764,13 @@ export default function ProductRentLease() {
 
         <Card className="rounded-2xl shadow-sm">
           <CardContent className="flex items-center justify-between p-5">
-            <div>
+            <div className="min-w-0 flex-1">
               <p className="text-sm text-muted-foreground">Completed</p>
               <h3 className="mt-1 text-2xl font-bold text-blue-600">
                 {statistics.completed}
               </h3>
             </div>
-            <div className="rounded-2xl bg-blue-100 p-3">
+            <div className="shrink-0 rounded-2xl bg-blue-100 p-3">
               <CheckCircle className="h-5 w-5 text-blue-700" />
             </div>
           </CardContent>
@@ -810,7 +780,7 @@ export default function ProductRentLease() {
       {/* Rent Requests Table */}
       <Card className="rounded-2xl shadow-sm">
         <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
+          <div className="min-w-0">
             <CardTitle>Rent & Lease Requests</CardTitle>
             <CardDescription>
               View and manage all product rental and lease requests.
@@ -826,8 +796,153 @@ export default function ProductRentLease() {
             />
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-xl border">
+
+        <CardContent className="min-w-0">
+          {/* Mobile cards */}
+          <div className="space-y-3 md:hidden">
+            {paginatedRequests.length > 0 ? (
+              paginatedRequests.map((request) => (
+                <div
+                  key={request.rent_id}
+                  className="min-w-0 overflow-hidden rounded-xl border p-4 shadow-sm"
+                >
+                  <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-muted-foreground">
+                        ID #{request.rent_id}
+                      </p>
+                      <p className="break-words font-medium">
+                        {request.product?.product_name || "N/A"}
+                      </p>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleViewClick(request)}
+                        className="h-8 w-8"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleStatusUpdateClick(request)}
+                        title="Update Status"
+                        className="h-8 w-8 text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      {(request.rent_status === "rejected" ||
+                        request.rent_status === "cancelled") &&
+                        request.payment_status !== "refunded" &&
+                        !request.is_refunded && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleRefundClick(request)}
+                            title="Process Refund"
+                            className="h-8 w-8 text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
+                        )}
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <div className="flex items-start gap-3 rounded-lg bg-muted/40 p-3">
+                      <ProductImage
+                        product={request.product}
+                        className="h-12 w-12 shrink-0 rounded-lg"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-medium">
+                          {request.product?.product_name || "N/A"}
+                        </p>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {request.product?.sell_price && (
+                            <span className="font-medium text-primary">
+                              {formatCurrency(request.product.sell_price)}
+                            </span>
+                          )}
+                          {request.product?.quantity !== undefined && (
+                            <span>Qty: {request.product.quantity}</span>
+                          )}
+                          {request.product?.sku && (
+                            <span className="break-all">
+                              SKU: {request.product.sku}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Customer</p>
+                      <p className="mt-1 break-words text-sm font-medium">
+                        {request.customer?.full_name || "N/A"}
+                      </p>
+                      <p className="mt-1 break-all text-xs text-muted-foreground">
+                        {request.customer?.email || "N/A"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {request.customer?.ph_number || "—"}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          Total Amount
+                        </p>
+                        <p className="mt-1 text-sm font-medium">
+                          {formatCurrency(request.product?.sell_price || 0)}
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg bg-muted/40 p-3">
+                        <p className="text-xs text-muted-foreground">Status</p>
+                        <div className="mt-1">
+                          <StatusBadge status={request.rent_status} />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">
+                        Request Date
+                      </p>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {formatDateTime(request.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                <div className="flex flex-col items-center gap-2">
+                  <Package className="h-8 w-8 opacity-50" />
+                  <p>No rent/lease requests found</p>
+                  {search && (
+                    <Button
+                      variant="link"
+                      onClick={() => setSearch("")}
+                      className="text-sm"
+                    >
+                      Clear search
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden min-w-0 overflow-x-auto rounded-xl border md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -845,7 +960,7 @@ export default function ProductRentLease() {
                 {paginatedRequests.length > 0 ? (
                   paginatedRequests.map((request) => (
                     <TableRow key={request.rent_id} className="group">
-                      <TableCell className="font-mono text-sm text-center">
+                      <TableCell className="text-center font-mono text-sm">
                         {request.rent_id}
                       </TableCell>
                       <TableCell>
@@ -854,17 +969,17 @@ export default function ProductRentLease() {
                             product={request.product}
                             className="h-12 w-12 rounded-lg"
                           />
-                          <div className="flex flex-col">
+                          <div className="flex min-w-0 flex-col">
                             <span className="text-sm font-semibold">
                               {request.product?.product_name || "N/A"}
                             </span>
-                            <div className="flex items-center gap-3 mt-1">
+                            <div className="mt-1 flex flex-wrap items-center gap-3">
                               {request.product?.sell_price && (
                                 <span className="text-xs font-medium text-primary">
                                   {formatCurrency(request.product.sell_price)}
                                 </span>
                               )}
-                              {request.product?.quantity && (
+                              {request.product?.quantity !== undefined && (
                                 <span className="text-xs text-muted-foreground">
                                   Qty: {request.product.quantity}
                                 </span>
@@ -893,9 +1008,7 @@ export default function ProductRentLease() {
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-muted-foreground">
-                            —
-                          </span>
+                          <span className="text-sm text-muted-foreground">—</span>
                         )}
                       </TableCell>
                       <TableCell className="font-medium">
@@ -922,24 +1035,24 @@ export default function ProductRentLease() {
                             size="icon"
                             onClick={() => handleStatusUpdateClick(request)}
                             title="Update Status"
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          {/* Refund button - only for rejected or cancelled statuses that haven't been refunded yet */}
-                          {(request.rent_status === "rejected" || request.rent_status === "cancelled") && 
-                           request.payment_status !== "refunded" && 
-                           !request.is_refunded && (
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleRefundClick(request)}
-                              title="Process Refund"
-                              className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
-                            >
-                              <DollarSign className="h-4 w-4" />
-                            </Button>
-                          )}
+                          {(request.rent_status === "rejected" ||
+                            request.rent_status === "cancelled") &&
+                            request.payment_status !== "refunded" &&
+                            !request.is_refunded && (
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleRefundClick(request)}
+                                title="Process Refund"
+                                className="text-orange-600 hover:bg-orange-50 hover:text-orange-700"
+                              >
+                                <DollarSign className="h-4 w-4" />
+                              </Button>
+                            )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -970,25 +1083,22 @@ export default function ProductRentLease() {
             </Table>
           </div>
 
+          {/* Pagination */}
           {filteredRequests.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="mt-4 flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <p className="min-w-0 break-words text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium">
                   {(currentPage - 1) * requestsPerPage + 1}
                 </span>{" "}
                 to{" "}
                 <span className="font-medium">
-                  {Math.min(
-                    currentPage * requestsPerPage,
-                    filteredRequests.length,
-                  )}
+                  {Math.min(currentPage * requestsPerPage, filteredRequests.length)}
                 </span>{" "}
-                of{" "}
-                <span className="font-medium">{filteredRequests.length}</span>{" "}
+                of <span className="font-medium">{filteredRequests.length}</span>{" "}
                 requests
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -998,38 +1108,44 @@ export default function ProductRentLease() {
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
                 </Button>
-                {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                  let page = index + 1;
-                  if (totalPages > 5 && currentPage > 3) {
-                    page = currentPage - 2 + index;
+
+                <div className="flex min-w-0 flex-wrap items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                    let page = index + 1;
+                    if (totalPages > 5 && currentPage > 3) {
+                      page = currentPage - 2 + index;
+                      if (page > totalPages) return null;
+                    }
                     if (page > totalPages) return null;
-                  }
-                  if (page > totalPages) return null;
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => handlePageChange(page)}
-                      className="min-w-9"
-                    >
-                      {page}
-                    </Button>
-                  );
-                })}
-                {totalPages > 5 && currentPage < totalPages - 2 && (
-                  <>
-                    <span className="px-2">...</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handlePageChange(totalPages)}
-                      className="min-w-9"
-                    >
-                      {totalPages}
-                    </Button>
-                  </>
-                )}
+
+                    return (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className="min-w-9"
+                      >
+                        {page}
+                      </Button>
+                    );
+                  })}
+
+                  {totalPages > 5 && currentPage < totalPages - 2 && (
+                    <>
+                      <span className="px-2">...</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePageChange(totalPages)}
+                        className="min-w-9"
+                      >
+                        {totalPages}
+                      </Button>
+                    </>
+                  )}
+                </div>
+
                 <Button
                   variant="outline"
                   size="sm"
@@ -1047,7 +1163,7 @@ export default function ProductRentLease() {
 
       {/* View Details Modal */}
       <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
-        <DialogContent className="modal-scroll max-h-[90vh] overflow-y-auto sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-6xl">
           <DialogHeader>
             <DialogTitle>Rent & Lease Request Details</DialogTitle>
             <DialogDescription>
@@ -1057,51 +1173,49 @@ export default function ProductRentLease() {
 
           {viewRequest && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
                 {/* Product Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <Package className="h-4 w-4" />
                     Product Information
                   </h3>
-                  <div className="flex gap-6">
+                  <div className="flex flex-col gap-6 md:flex-row">
                     <ProductImage
                       product={viewRequest.product}
                       className="h-32 w-32 rounded-lg"
                     />
-                    <div className="flex-1 space-y-2">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Product Name
                           </p>
-                          <p className="text-lg font-semibold">
+                          <p className="break-words text-lg font-semibold">
                             {viewRequest.product?.product_name || "N/A"}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Price
                           </p>
                           <p className="text-base font-bold text-primary">
-                            {formatCurrency(
-                              viewRequest.product?.sell_price || 0,
-                            )}
+                            {formatCurrency(viewRequest.product?.sell_price || 0)}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             Quantity Available
                           </p>
                           <p className="text-base font-medium">
                             {viewRequest.product?.quantity || "N/A"}
                           </p>
                         </div>
-                        <div>
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                             SKU
                           </p>
-                          <p className="text-sm font-mono">
+                          <p className="break-all text-sm font-mono">
                             {viewRequest.product?.sku || "N/A"}
                           </p>
                         </div>
@@ -1109,13 +1223,12 @@ export default function ProductRentLease() {
                     </div>
                   </div>
                   {viewRequest.product?.description && (
-                    <div className="mt-4 pt-4 border-t">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                    <div className="mt-4 border-t pt-4">
+                      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Description
                       </p>
                       <div
-                        className="prose prose-sm max-w-none dark:prose-invert overflow-y-auto max-h-48 pr-2"
-                        style={{ maxHeight: "150px" }}
+                        className="prose prose-sm max-h-48 overflow-y-auto pr-2 dark:prose-invert"
                         dangerouslySetInnerHTML={{
                           __html: viewRequest.product.description,
                         }}
@@ -1126,35 +1239,35 @@ export default function ProductRentLease() {
 
                 {/* Customer Information Section */}
                 <div className="rounded-lg border bg-card p-6">
-                  <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                  <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                     <User className="h-4 w-4" />
                     Customer Information
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Full Name
                       </p>
-                      <p className="text-sm font-medium">
+                      <p className="break-words text-sm font-medium">
                         {viewRequest.customer?.full_name || "N/A"}
                       </p>
                     </div>
-                    <div className="space-y-1">
-                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                         Email Address
                       </p>
-                      <p className="text-sm font-medium flex items-center gap-2 break-all">
-                        <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <p className="flex items-center gap-2 break-all text-sm font-medium">
+                        <Mail className="h-4 w-4 shrink-0 text-muted-foreground" />
                         {viewRequest.customer?.email || "N/A"}
                       </p>
                     </div>
                     {viewRequest.customer?.ph_number && (
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Phone Number
                         </p>
-                        <p className="text-sm font-medium flex items-center gap-2">
-                          <Phone className="h-4 w-4 text-muted-foreground" />
+                        <p className="flex items-center gap-2 break-words text-sm font-medium">
+                          <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
                           {viewRequest.customer.ph_number}
                         </p>
                       </div>
@@ -1165,37 +1278,37 @@ export default function ProductRentLease() {
 
               {/* Rental Details Section */}
               <div className="rounded-lg border bg-card p-6">
-                <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+                <h3 className="mb-4 flex items-center gap-2 text-base font-semibold">
                   <Calendar className="h-4 w-4" />
                   Rental Details
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-4">
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                <div className="grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Total Amount
                     </p>
                     <p className="text-sm font-medium text-primary">
                       {formatCurrency(viewRequest.product?.sell_price || 0)}
                     </p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Request Date
                     </p>
-                    <p className="text-sm font-medium">
+                    <p className="break-words text-sm font-medium">
                       {formatDateTime(viewRequest.created_at)}
                     </p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Last Updated
                     </p>
-                    <p className="text-sm font-medium">
+                    <p className="break-words text-sm font-medium">
                       {formatDateTime(viewRequest.updated_at)}
                     </p>
                   </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="space-y-1 min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Request Status
                     </p>
                     <div className="flex items-center gap-4">
@@ -1205,24 +1318,24 @@ export default function ProductRentLease() {
                 </div>
 
                 {(viewRequest.rent_note || viewRequest.query) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 mt-4">
+                  <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-4 md:grid-cols-2">
                     {viewRequest.query && (
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Customer Query
                         </p>
-                        <p className="text-sm font-medium text-primary">
+                        <p className="break-words text-sm font-medium text-primary">
                           {viewRequest.query}
                         </p>
                       </div>
                     )}
 
                     {viewRequest.rent_note && (
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      <div className="space-y-1 min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                           Admin Note
                         </p>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="break-words text-sm text-muted-foreground">
                           {viewRequest.rent_note}
                         </p>
                       </div>
@@ -1237,7 +1350,7 @@ export default function ProductRentLease() {
 
       {/* Status Update Modal */}
       <Dialog open={isStatusUpdateOpen} onOpenChange={setIsStatusUpdateOpen}>
-        <DialogContent className="sm:max-w-xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -1290,7 +1403,7 @@ export default function ProductRentLease() {
                 />
               </div>
 
-              <DialogFooter className="gap-2">
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="outline"
@@ -1299,6 +1412,7 @@ export default function ProductRentLease() {
                     setStatusUpdateRequest(null);
                     setStatusUpdateData({ rent_status: "", rent_note: "" });
                   }}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
@@ -1308,7 +1422,7 @@ export default function ProductRentLease() {
                   disabled={
                     loading.updatingStatus || !statusUpdateData.rent_status
                   }
-                  className="bg-green-600 hover:bg-green-700"
+                  className="w-full bg-green-600 hover:bg-green-700 sm:w-auto"
                 >
                   {loading.updatingStatus && (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1323,7 +1437,7 @@ export default function ProductRentLease() {
 
       {/* Refund Modal */}
       <Dialog open={isRefundOpen} onOpenChange={setIsRefundOpen}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] w-[calc(100%-1.5rem)] max-w-[calc(100vw-1.5rem)] overflow-x-hidden overflow-y-auto rounded-2xl sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-orange-600" />
@@ -1336,25 +1450,31 @@ export default function ProductRentLease() {
 
           {refundRequest && (
             <div className="space-y-4">
-              <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className="space-y-2 rounded-lg bg-muted/50 p-4">
+                <div className="flex justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">Request ID:</span>
-                  <span className="font-mono font-medium">#{refundRequest.rent_id}</span>
+                  <span className="font-mono font-medium">
+                    #{refundRequest.rent_id}
+                  </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">Product:</span>
-                  <span className="font-medium">{refundRequest.product?.product_name}</span>
+                  <span className="break-words text-right font-medium">
+                    {refundRequest.product?.product_name}
+                  </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">Customer:</span>
-                  <span className="font-medium">{refundRequest.customer?.full_name}</span>
+                  <span className="break-words text-right font-medium">
+                    {refundRequest.customer?.full_name}
+                  </span>
                 </div>
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">Status:</span>
                   <StatusBadge status={refundRequest.rent_status} />
                 </div>
                 <Separator className="my-2" />
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between gap-3 text-sm">
                   <span className="text-muted-foreground">Original Amount:</span>
                   <span className="font-semibold text-primary">
                     {formatCurrency(refundRequest.product?.sell_price || 0)}
@@ -1375,13 +1495,19 @@ export default function ProductRentLease() {
                     min="0"
                     max={parseFloat(refundRequest.product?.sell_price || "0")}
                     value={refundData.amount}
-                    onChange={(e) => setRefundData(prev => ({ ...prev, amount: e.target.value }))}
+                    onChange={(e) =>
+                      setRefundData((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
                     className="pl-7"
                     placeholder="0.00"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Maximum refund amount: {formatCurrency(refundRequest.product?.sell_price || 0)}
+                  Maximum refund amount:{" "}
+                  {formatCurrency(refundRequest.product?.sell_price || 0)}
                 </p>
               </div>
 
@@ -1390,13 +1516,18 @@ export default function ProductRentLease() {
                 <Textarea
                   id="refund_reason"
                   value={refundData.reason}
-                  onChange={(e) => setRefundData(prev => ({ ...prev, reason: e.target.value }))}
+                  onChange={(e) =>
+                    setRefundData((prev) => ({
+                      ...prev,
+                      reason: e.target.value,
+                    }))
+                  }
                   placeholder="Reason for refund..."
                   rows={3}
                 />
               </div>
 
-              <DialogFooter className="gap-2">
+              <DialogFooter className="flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="outline"
@@ -1405,16 +1536,23 @@ export default function ProductRentLease() {
                     setRefundRequest(null);
                     setRefundData({ amount: "", reason: "" });
                   }}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="button"
                   onClick={handleProcessRefund}
-                  disabled={loading.processingRefund || !refundData.amount || parseFloat(refundData.amount) <= 0}
-                  className="bg-orange-600 hover:bg-orange-700"
+                  disabled={
+                    loading.processingRefund ||
+                    !refundData.amount ||
+                    parseFloat(refundData.amount) <= 0
+                  }
+                  className="w-full bg-orange-600 hover:bg-orange-700 sm:w-auto"
                 >
-                  {loading.processingRefund && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {loading.processingRefund && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
                   Process Refund
                 </Button>
               </DialogFooter>
