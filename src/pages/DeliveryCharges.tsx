@@ -55,6 +55,7 @@ type DeliveryCharge = {
   delivery_title: string;
   delivery_price: string | number;
   deleivery_description: string;
+  weight_range: string;
   created_at?: string;
   updated_at?: string;
 };
@@ -63,12 +64,14 @@ type DeliveryChargeForm = {
   delivery_title: string;
   delivery_price: string;
   deleivery_description: string;
+  weight_range: string;
 };
 
 type ValidationErrors = {
   delivery_title?: string[];
   delivery_price?: string[];
   deleivery_description?: string[];
+  weight_range?: string[];
 };
 
 type AlertType = {
@@ -81,6 +84,7 @@ const emptyForm: DeliveryChargeForm = {
   delivery_title: "",
   delivery_price: "",
   deleivery_description: "",
+  weight_range: "",
 };
 
 export default function DeliveryChargePage() {
@@ -149,6 +153,7 @@ export default function DeliveryChargePage() {
           delivery_title: data.delivery_title.trim(),
           deleivery_description: data.deleivery_description.trim(),
           delivery_price: parseFloat(data.delivery_price),
+          weight_range: data.weight_range.trim(),
         });
 
         if (response.data.status === "success") {
@@ -188,6 +193,7 @@ export default function DeliveryChargePage() {
           delivery_title: data.delivery_title.trim(),
           deleivery_description: data.deleivery_description.trim(),
           delivery_price: parseFloat(data.delivery_price),
+          weight_range: data.weight_range.trim(),
         });
 
         if (response.data.status === "success") {
@@ -254,7 +260,8 @@ export default function DeliveryChargePage() {
         item.option_id.toString().includes(q) ||
         item.delivery_title.toLowerCase().includes(q) ||
         item.delivery_price.toString().includes(q) ||
-        item.deleivery_description.toLowerCase().includes(q)
+        item.deleivery_description.toLowerCase().includes(q) ||
+        item.weight_range.toLowerCase().includes(q)
       );
     });
   }, [deliveryCharges, search]);
@@ -330,6 +337,10 @@ export default function DeliveryChargePage() {
       ];
     }
 
+    if (!formData.weight_range.trim()) {
+      errors.weight_range = ["Weight range is required"];
+    }
+
     setValidationErrors(errors);
 
     if (Object.keys(errors).length > 0) {
@@ -358,6 +369,7 @@ export default function DeliveryChargePage() {
       delivery_title: item.delivery_title,
       delivery_price: item.delivery_price.toString(),
       deleivery_description: item.deleivery_description || "",
+      weight_range: item.weight_range || "",
     });
     setValidationErrors({});
     setIsEditOpen(true);
@@ -433,6 +445,27 @@ export default function DeliveryChargePage() {
           {validationErrors.delivery_price && (
             <p className="text-sm text-destructive">
               {validationErrors.delivery_price[0]}
+            </p>
+          )}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="weight_range">
+            Weight Range <span className="text-destructive">*</span>
+          </Label>
+          <Input
+            id="weight_range"
+            name="weight_range"
+            value={formData.weight_range}
+            onChange={handleInputChange}
+            placeholder="e.g., 0-5kg, 5-10kg, 10-20kg"
+            className={
+              validationErrors.weight_range ? "border-destructive" : ""
+            }
+          />
+          {validationErrors.weight_range && (
+            <p className="text-sm text-destructive">
+              {validationErrors.weight_range[0]}
             </p>
           )}
         </div>
@@ -608,7 +641,7 @@ export default function DeliveryChargePage() {
           <div className="relative w-full md:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
-              placeholder="Search by ID, title, price, or description..."
+              placeholder="Search by ID, title, price, description, or weight range..."
               className="pl-10"
               value={search}
               onChange={(e) => {
@@ -660,6 +693,13 @@ export default function DeliveryChargePage() {
                     </div>
 
                     <div className="rounded-lg bg-muted/40 p-3">
+                      <p className="text-xs text-muted-foreground">Weight Range</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {item.weight_range || "—"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-lg bg-muted/40 p-3">
                       <p className="text-xs text-muted-foreground">Description</p>
                       <p className="mt-1 break-words text-sm text-muted-foreground">
                         {item.deleivery_description || "—"}
@@ -695,6 +735,7 @@ export default function DeliveryChargePage() {
                   <TableHead className="w-20 text-center">ID</TableHead>
                   <TableHead className="min-w-[200px]">Delivery Title</TableHead>
                   <TableHead className="w-40 text-center">Price ($)</TableHead>
+                  <TableHead className="w-40">Weight Range</TableHead>
                   <TableHead className="min-w-[300px]">Description</TableHead>
                   <TableHead className="w-24 text-center">Actions</TableHead>
                 </TableRow>
@@ -712,6 +753,11 @@ export default function DeliveryChargePage() {
                       </TableCell>
                       <TableCell className="text-center font-medium">
                         ${parseFloat(item.delivery_price.toString()).toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground">
+                          {item.weight_range || "—"}
+                        </p>
                       </TableCell>
                       <TableCell className="max-w-[500px]">
                         <p className="line-clamp-2 text-sm text-muted-foreground">
@@ -736,7 +782,7 @@ export default function DeliveryChargePage() {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={5}
+                      colSpan={6}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       <div className="flex flex-col items-center gap-2">

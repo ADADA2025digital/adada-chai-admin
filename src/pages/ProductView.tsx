@@ -1077,6 +1077,7 @@ export default function ProductView() {
       setError(null);
 
       const response = await api.get(`/products/${id}`);
+      console.log("API response:", response.data);
 
       if (response.data.status === "success") {
         setProduct(response.data.data);
