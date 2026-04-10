@@ -155,7 +155,9 @@ const mapApiTransactionToUI = (apiTransaction: any): TransactionType => {
     order.customer_phone ||
     "N/A";
 
-  const transactionPrimaryId = Number(apiTransaction.t_id || apiTransaction.id || 0);
+  const transactionPrimaryId = Number(
+    apiTransaction.t_id || apiTransaction.id || 0,
+  );
 
   return {
     id: transactionPrimaryId,
@@ -521,7 +523,11 @@ export default function Transactions() {
         </div>
 
         <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-end sm:gap-3">
-          <Button variant="outline" onClick={handlePrint} className="w-full sm:w-auto">
+          <Button
+            variant="outline"
+            onClick={handlePrint}
+            className="w-full sm:w-auto"
+          >
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
@@ -662,7 +668,7 @@ export default function Transactions() {
             value={filterPaymentStatus}
             onValueChange={setFilterPaymentStatus}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by payment status" />
             </SelectTrigger>
             <SelectContent>
@@ -683,7 +689,7 @@ export default function Transactions() {
             value={filterOrderStatus}
             onValueChange={setFilterOrderStatus}
           >
-            <SelectTrigger>
+            <SelectTrigger className="w-full">
               <SelectValue placeholder="Filter by order status" />
             </SelectTrigger>
             <SelectContent>
@@ -719,7 +725,8 @@ export default function Transactions() {
                   <div className="mb-3 flex min-w-0 items-start justify-between gap-3">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs text-muted-foreground">
-                        No. {(currentPage - 1) * transactionsPerPage + index + 1}
+                        No.{" "}
+                        {(currentPage - 1) * transactionsPerPage + index + 1}
                       </p>
                       <p className="break-words font-medium">
                         {transaction.transactionId}
@@ -752,7 +759,9 @@ export default function Transactions() {
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="rounded-lg bg-muted/40 p-3">
-                        <p className="text-xs text-muted-foreground">Order ID</p>
+                        <p className="text-xs text-muted-foreground">
+                          Order ID
+                        </p>
                         <p className="mt-1 break-words text-sm font-medium">
                           {transaction.orderId}
                         </p>
@@ -910,8 +919,12 @@ export default function Transactions() {
                         </span>
                       </TableCell>
 
-                      <TableCell>${transaction.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>${transaction.paidAmount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        ${transaction.totalAmount.toFixed(2)}
+                      </TableCell>
+                      <TableCell>
+                        ${transaction.paidAmount.toFixed(2)}
+                      </TableCell>
 
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -1299,7 +1312,11 @@ export default function Transactions() {
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     {selectedTransaction.viewUrl && (
-                      <Button variant="outline" asChild className="w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        asChild
+                        className="w-full sm:w-auto"
+                      >
                         <a
                           href={selectedTransaction.viewUrl}
                           target="_blank"
@@ -1312,7 +1329,11 @@ export default function Transactions() {
                     )}
 
                     {selectedTransaction.downloadUrl && (
-                      <Button variant="outline" asChild className="w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        asChild
+                        className="w-full sm:w-auto"
+                      >
                         <a
                           href={selectedTransaction.downloadUrl}
                           target="_blank"

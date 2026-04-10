@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-
+// SidebarContext.tsx
+import React, { createContext, useContext, useState } from "react";
 
 interface SidebarContextType {
   isExpanded: boolean;
@@ -10,7 +10,6 @@ interface SidebarContextType {
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  // Check localStorage for saved preference, default to true (expanded)
   const [isExpanded, setIsExpanded] = useState(() => {
     const saved = localStorage.getItem("sidebar-expanded");
     return saved !== null ? JSON.parse(saved) : true;

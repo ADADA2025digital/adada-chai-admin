@@ -419,7 +419,7 @@ function ProductFormFields({
 
   const discountOptions = discounts.map((discount) => ({
     value: String(discount.discount_id),
-    label: `${discount.discount_name} (${discount.discount_percentage}% OFF) - Valid: ${new Date(discount.start_date).toLocaleDateString()} to ${new Date(discount.end_date).toLocaleDateString()}`,
+    label: `${discount.discount_name} - ${discount.discount_percentage}% OFF`,
     percentage: discount.discount_percentage,
     start_date: discount.start_date,
     end_date: discount.end_date,
@@ -473,7 +473,7 @@ function ProductFormFields({
   };
 
   return (
-    <div className="grid gap-4 px-1 py-2">
+    <div className="grid min-w-0 gap-4 px-0 py-2 sm:px-1">
       <input
         ref={manualFileInputRef}
         type="file"
@@ -483,13 +483,13 @@ function ProductFormFields({
         onChange={handleManualFileSelect}
       />
 
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <h3 className="text-lg font-semibold text-foreground">
           Basic Information
         </h3>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="product_name" className="text-foreground">
               Product Name <span className="text-destructive">*</span>
             </Label>
@@ -515,7 +515,7 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="c_id" className="text-foreground">
               Category <span className="text-destructive">*</span>
             </Label>
@@ -555,7 +555,7 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="sku" className="text-foreground">
               SKU <span className="text-destructive">*</span>
             </Label>
@@ -579,7 +579,7 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="supplier_sku" className="text-foreground">
               Supplier SKU
             </Label>
@@ -602,13 +602,13 @@ function ProductFormFields({
         </div>
 
         <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="weight" className="text-foreground">
               Weight <span className="text-xs text-muted-foreground">(kg)</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.weight ? "border-destructive" : "border-input",
               )}
             >
@@ -624,7 +624,7 @@ function ProductFormFields({
                 value={formData.weight || ""}
                 onChange={handleInputChange}
                 placeholder="Enter weight in kg"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -635,13 +635,13 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="height" className="text-foreground">
               Height <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.height ? "border-destructive" : "border-input",
               )}
             >
@@ -657,7 +657,7 @@ function ProductFormFields({
                 value={formData.height || ""}
                 onChange={handleInputChange}
                 placeholder="Enter height in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -668,13 +668,13 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="length" className="text-foreground">
               Length <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.length ? "border-destructive" : "border-input",
               )}
             >
@@ -690,7 +690,7 @@ function ProductFormFields({
                 value={formData.length || ""}
                 onChange={handleInputChange}
                 placeholder="Enter length in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -701,13 +701,13 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="width" className="text-foreground">
               Width <span className="text-xs text-muted-foreground">(cm)</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.width ? "border-destructive" : "border-input",
               )}
             >
@@ -723,7 +723,7 @@ function ProductFormFields({
                 value={formData.width || ""}
                 onChange={handleInputChange}
                 placeholder="Enter width in cm"
-                className="h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
                 disabled={isSubmitting}
               />
             </div>
@@ -736,13 +736,13 @@ function ProductFormFields({
         </div>
 
         <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="buy_price" className="text-foreground">
               Buy Price <span className="text-destructive">*</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.buy_price
                   ? "border-destructive"
                   : "border-input",
@@ -760,7 +760,7 @@ function ProductFormFields({
                 onChange={handleInputChange}
                 placeholder="Enter buy price"
                 disabled={isSubmitting}
-                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="no-spinner h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
             <div className="min-h-[20px]">
@@ -772,13 +772,13 @@ function ProductFormFields({
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="sell_price" className="text-foreground">
               Sell Price <span className="text-destructive">*</span>
             </Label>
             <div
               className={cn(
-                "flex h-10 items-center rounded-md border bg-background",
+                "flex h-10 min-w-0 items-center rounded-md border bg-background",
                 validationErrors.sell_price
                   ? "border-destructive"
                   : "border-input",
@@ -796,7 +796,7 @@ function ProductFormFields({
                 onChange={handleInputChange}
                 placeholder="Enter sell price"
                 disabled={isSubmitting}
-                className="no-spinner h-full w-full flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+                className="no-spinner h-full w-full min-w-0 flex-1 bg-transparent pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
               />
             </div>
             <div className="min-h-[20px]">
@@ -808,7 +808,7 @@ function ProductFormFields({
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="quantity" className="text-foreground">
               Quantity <span className="text-destructive">*</span>
             </Label>
@@ -836,7 +836,7 @@ function ProductFormFields({
             </div>
           </div>
 
-          <div className="grid gap-2">
+          <div className="grid min-w-0 gap-2">
             <Label htmlFor="product_status" className="text-foreground">
               Product Status <span className="text-destructive">*</span>
             </Label>
@@ -906,8 +906,8 @@ function ProductFormFields({
             )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid min-w-0 gap-4 md:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
               <Label
                 htmlFor="selected_discount"
                 className="flex items-center gap-2 text-foreground"
@@ -928,7 +928,7 @@ function ProductFormFields({
                 }}
                 disabled={isSubmitting}
               >
-                <SelectTrigger className="w-full border-input bg-background text-foreground">
+                <SelectTrigger className="w-full min-w-0 border-input bg-background text-foreground">
                   <SelectValue placeholder="Choose a discount" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px] border-border bg-popover text-popover-foreground shadow-lg">
@@ -938,7 +938,9 @@ function ProductFormFields({
                       value={discount.value}
                       className="text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground data-[state=checked]:bg-muted"
                     >
-                      {discount.label}
+                      <span className="block max-w-[260px] truncate sm:max-w-none">
+                        {discount.label}
+                      </span>
                     </SelectItem>
                   ))}
 
@@ -971,13 +973,13 @@ function ProductFormFields({
           {selectedDiscount && (
             <div className="mt-4 rounded-lg border border-border bg-muted/30 p-4">
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Discount Name</p>
-                  <p className="font-medium text-foreground">
+                  <p className="break-words font-medium text-foreground">
                     {selectedDiscount.discount_name}
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">
                     Discount Percentage
                   </p>
@@ -985,16 +987,16 @@ function ProductFormFields({
                     {selectedDiscount.discount_percentage}% OFF
                   </p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-sm text-muted-foreground">Valid Period</p>
-                  <p className="text-sm text-foreground">
+                  <p className="break-words text-sm text-foreground">
                     {new Date(selectedDiscount.start_date).toLocaleDateString()}{" "}
                     - {new Date(selectedDiscount.end_date).toLocaleDateString()}
                   </p>
                 </div>
                 {formData.sell_price &&
                   selectedDiscount.discount_percentage && (
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-sm text-muted-foreground">
                         Discounted Price
                       </p>
@@ -1023,14 +1025,23 @@ function ProductFormFields({
             </h3>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="grid gap-2">
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="description" className="text-foreground">
                 Description <span className="text-destructive">*</span>
               </Label>
               <div
                 className={cn(
-                  "ck-editor-custom overflow-hidden rounded-md border",
+                  "ck-editor-custom min-w-0 overflow-hidden rounded-md border",
+                  "[&_.ck]:max-w-full",
+                  "[&_.ck-editor]:max-w-full",
+                  "[&_.ck-toolbar]:flex-wrap",
+                  "[&_.ck-toolbar]:overflow-x-auto",
+                  "[&_.ck-toolbar]:gap-1",
+                  "[&_.ck-toolbar__items]:flex-wrap",
+                  "[&_.ck-content]:break-words",
+                  "[&_.ck-editor__editable_inline]:min-h-[180px]",
+                  "[&_.ck-editor__editable_inline]:max-w-full",
                   validationErrors.description
                     ? "border-destructive"
                     : "border-input",
@@ -1058,13 +1069,22 @@ function ProductFormFields({
               )}
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid min-w-0 gap-2">
               <Label htmlFor="specification" className="text-foreground">
                 Specifications <span className="text-destructive">*</span>
               </Label>
               <div
                 className={cn(
-                  "ck-editor-custom overflow-hidden rounded-md border",
+                  "ck-editor-custom min-w-0 overflow-hidden rounded-md border",
+                  "[&_.ck]:max-w-full",
+                  "[&_.ck-editor]:max-w-full",
+                  "[&_.ck-toolbar]:flex-wrap",
+                  "[&_.ck-toolbar]:overflow-x-auto",
+                  "[&_.ck-toolbar]:gap-1",
+                  "[&_.ck-toolbar__items]:flex-wrap",
+                  "[&_.ck-content]:break-words",
+                  "[&_.ck-editor__editable_inline]:min-h-[180px]",
+                  "[&_.ck-editor__editable_inline]:max-w-full",
                   validationErrors.specification
                     ? "border-destructive"
                     : "border-input",
@@ -1136,7 +1156,7 @@ function ProductFormFields({
             </div>
           </div>
 
-          <div className="lg:col-span-8">
+          <div className="min-w-0 lg:col-span-8">
             <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <Label className="text-sm font-medium text-foreground">
                 Uploaded Assets
@@ -1169,7 +1189,7 @@ function ProductFormFields({
                 assets.map((asset, index) => (
                   <div
                     key={asset.id}
-                    className="flex items-center justify-between rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
+                    className="flex min-w-0 items-center justify-between gap-2 rounded-lg border bg-card p-3 transition-colors hover:bg-muted/5"
                   >
                     <div className="flex min-w-0 flex-1 items-center gap-3">
                       <div className="shrink-0">
@@ -1199,12 +1219,12 @@ function ProductFormFields({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
+                        <p className="break-all text-sm font-medium text-foreground">
                           {asset.file?.name ||
                             asset.existingUrl?.split("/").pop() ||
                             `${asset.type} asset`}
                         </p>
-                        <div className="mt-0.5 flex items-center gap-2">
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2">
                           <span className="text-xs capitalize text-muted-foreground">
                             {asset.type}
                           </span>
@@ -1256,7 +1276,7 @@ function ProductFormFields({
       <div className="space-y-4 border-t border-border pt-4">
         <h3 className="text-lg font-semibold text-foreground">SEO Settings</h3>
 
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor="product_meta_title" className="text-foreground">
             Meta Title <span className="text-destructive">*</span>
           </Label>
@@ -1285,7 +1305,7 @@ function ProductFormFields({
           )}
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor="meta_keywords" className="text-foreground">
             Meta Keywords <span className="text-destructive">*</span>
           </Label>
@@ -1311,7 +1331,7 @@ function ProductFormFields({
           )}
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid min-w-0 gap-2">
           <Label htmlFor="meta_description" className="text-foreground">
             Meta Description <span className="text-destructive">*</span>
           </Label>
@@ -2523,7 +2543,7 @@ export default function Products() {
   }
 
   return (
-    <div className="relative min-h-screen space-y-4 bg-background px-3 py-4 sm:space-y-6 sm:p-6">
+    <div className="relative min-h-screen space-y-4 overflow-x-hidden bg-background px-3 py-4 sm:space-y-6 sm:p-6">
       {alert.show && (
         <div className="fixed right-3 top-16 z-50 w-[calc(100%-1.5rem)] max-w-sm animate-in slide-in-from-top-2 fade-in duration-300 sm:right-4 sm:w-[calc(100%-2rem)]">
           <Alert
@@ -2545,7 +2565,7 @@ export default function Products() {
         </div>
       )}
 
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             All Products
@@ -2561,7 +2581,7 @@ export default function Products() {
           )}
         </div>
 
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-3">
           <Button
             variant="outline"
             onClick={handleRefresh}
@@ -2644,7 +2664,7 @@ export default function Products() {
       </div>
 
       <Card className="rounded-2xl bg-card shadow-sm">
-        <CardHeader className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="flex min-w-0 flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="min-w-0">
             <CardTitle className="text-foreground">Product Listing</CardTitle>
             <CardDescription>
@@ -2652,7 +2672,7 @@ export default function Products() {
             </CardDescription>
           </div>
 
-          <div className="relative w-full md:w-80">
+          <div className="relative w-full min-w-0 md:w-80">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Search product..."
@@ -2678,7 +2698,7 @@ export default function Products() {
                     key={product.product_id}
                     className="rounded-xl border border-border bg-card p-4 shadow-sm"
                   >
-                    <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="space-y-3">
                       <div className="flex min-w-0 items-start gap-3">
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
                           {product.assets && product.assets[0]?.asset_url ? (
@@ -2694,11 +2714,11 @@ export default function Products() {
                           )}
                         </div>
 
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <p className="text-xs text-muted-foreground">
                             ID #{product.product_id}
                           </p>
-                          <p className="break-words font-medium text-foreground">
+                          <p className="break-words pr-1 text-sm font-medium leading-5 text-foreground">
                             {product.product_name}
                           </p>
                           <p className="mt-1 break-all text-xs text-muted-foreground">
@@ -2712,40 +2732,43 @@ export default function Products() {
                         </div>
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           variant="outline"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleViewClick(product)}
-                          className="h-8 w-8"
+                          className="min-w-[90px] flex-1"
                           title="View product"
                         >
-                          <Eye className="h-4 w-4" />
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
                         </Button>
 
                         <Button
                           variant="outline"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleEditClick(product)}
-                          className="h-8 w-8"
+                          className="min-w-[90px] flex-1"
                           title="Edit product"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
                         </Button>
 
                         <Button
                           variant="outline"
-                          size="icon"
+                          size="sm"
                           onClick={() => handleDeleteClick(product)}
-                          className="h-8 w-8 hover:text-destructive"
+                          className="min-w-[90px] flex-1 hover:text-destructive"
                           title="Delete product"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
                         </Button>
                       </div>
                     </div>
 
-                    <div className="grid gap-3 rounded-lg bg-muted/40 p-3">
+                    <div className="mt-3 grid gap-3 rounded-lg bg-muted/40 p-3">
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-xs text-muted-foreground">
                           Price
@@ -2778,7 +2801,7 @@ export default function Products() {
                               <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
                                 {discount.discount_percentage}% OFF
                               </span>
-                              <p className="mt-1 text-xs text-muted-foreground">
+                              <p className="mt-1 break-words text-xs text-muted-foreground">
                                 {discount.discount_name}
                               </p>
                             </>
@@ -2857,7 +2880,9 @@ export default function Products() {
                   <TableHead className="w-20 text-center text-foreground">
                     ID
                   </TableHead>
-                  <TableHead className="text-foreground">Image</TableHead>
+                  <TableHead className="w-[72px] text-foreground">
+                    Image
+                  </TableHead>
                   <TableHead className="text-foreground">
                     Product Name
                   </TableHead>
@@ -2889,7 +2914,7 @@ export default function Products() {
                         <TableCell className="font-mono text-center text-sm text-foreground">
                           {product.product_id}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-[72px]">
                           <div className="h-12 w-12 overflow-hidden rounded-md border border-border bg-muted">
                             {product.assets && product.assets[0]?.asset_url ? (
                               <img
@@ -2902,12 +2927,12 @@ export default function Products() {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          <p className="font-medium text-foreground">
+                        <TableCell className="max-w-[220px]">
+                          <p className="break-words font-medium leading-5 text-foreground">
                             {product.product_name}
                           </p>
                           {product.supplier_sku && (
-                            <p className="text-xs text-muted-foreground">
+                            <p className="mt-1 break-all text-xs text-muted-foreground">
                               Sup: {product.supplier_sku}
                             </p>
                           )}
@@ -2976,8 +3001,8 @@ export default function Products() {
                             {product.product_status || "Active"}
                           </span>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-2">
+                        <TableCell className="w-[140px]">
+                          <div className="flex flex-wrap items-center justify-center gap-2">
                             <Button
                               variant="outline"
                               size="icon"
@@ -3039,7 +3064,7 @@ export default function Products() {
           </div>
 
           {filteredProducts.length > 0 && (
-            <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="mt-4 flex flex-col gap-3 overflow-x-hidden md:flex-row md:items-center md:justify-between">
               <p className="text-sm text-muted-foreground">
                 Showing{" "}
                 <span className="font-medium text-foreground">
@@ -3059,12 +3084,13 @@ export default function Products() {
                 products
               </p>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
+                  className="shrink-0"
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
                   Prev
@@ -3084,7 +3110,7 @@ export default function Products() {
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
                       onClick={() => handlePageChange(page)}
-                      className="min-w-9"
+                      className="min-w-9 shrink-0"
                     >
                       {page}
                     </Button>
@@ -3098,7 +3124,7 @@ export default function Products() {
                       variant="outline"
                       size="sm"
                       onClick={() => handlePageChange(totalPages)}
-                      className="min-w-9"
+                      className="min-w-9 shrink-0"
                     >
                       {totalPages}
                     </Button>
@@ -3110,6 +3136,7 @@ export default function Products() {
                   size="sm"
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
+                  className="shrink-0"
                 >
                   Next
                   <ChevronRight className="ml-1 h-4 w-4" />
@@ -3128,7 +3155,7 @@ export default function Products() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border-border bg-background sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[95vw] max-w-[95vw] overflow-x-hidden overflow-y-auto rounded-2xl border-border bg-background p-4 sm:max-w-6xl sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-foreground">
               Add New Product
@@ -3192,7 +3219,7 @@ export default function Products() {
           if (!open) resetForm();
         }}
       >
-        <DialogContent className="modal-scroll max-h-[90vh] w-[calc(100%-1.5rem)] overflow-y-auto rounded-2xl border-border bg-background sm:max-w-6xl">
+        <DialogContent className="modal-scroll max-h-[90vh] w-[95vw] max-w-[95vw] overflow-x-hidden overflow-y-auto rounded-2xl border-border bg-background p-4 sm:max-w-6xl sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-foreground">Edit Product</DialogTitle>
             <DialogDescription>
@@ -3257,7 +3284,7 @@ export default function Products() {
 
       {/* Create New Discount Modal */}
       <Dialog open={isNewDiscountOpen} onOpenChange={setIsNewDiscountOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl border-border bg-background sm:max-w-xl">
+        <DialogContent className="w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border-border bg-background p-4 sm:max-w-xl sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-foreground">
               <Gift className="h-5 w-5" />
@@ -3379,7 +3406,7 @@ export default function Products() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-        <DialogContent className="w-[calc(100%-1.5rem)] rounded-2xl border-border bg-background sm:max-w-lg">
+        <DialogContent className="w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border-border bg-background p-4 sm:max-w-lg sm:p-6">
           <DialogHeader>
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
