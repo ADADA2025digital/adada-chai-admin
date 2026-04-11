@@ -34,6 +34,13 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Truck,
   Plus,
   Search,
@@ -87,6 +94,68 @@ const emptyForm: DeliveryChargeForm = {
   weight_range: "",
 };
 
+const weightRangeOptions = [
+  "0 - 500g",
+  "1kg - 3kg",
+  "3kg - 5kg",
+  "5kg - 10kg",
+  "Other",
+] as const;
+
+const WEIGHT_RANGE_REGEX =
+  /^\s*(\d+(?:\.\d+)?)\s*(kg|g)\s*-\s*(\d+(?:\.\d+)?)\s*(kg|g)\s*$/i;
+
+const toGrams = (value: number, unit: string): number => {
+  return unit.toLowerCase() === "kg" ? value * 1000 : value;
+};
+
+const validateCustomWeightRange = (
+  value: string,
+): { valid: boolean; message?: string } => {
+  const trimmed = value.trim();
+  const match = trimmed.match(WEIGHT_RANGE_REGEX);
+
+  if (!match) {
+    return {
+      valid: false,
+      message: "Enter weight range like 500g - 1kg or 1kg - 3kg",
+    };
+  }
+
+  const firstValue = parseFloat(match[1]);
+  const firstUnit = match[2].toLowerCase();
+  const secondValue = parseFloat(match[3]);
+  const secondUnit = match[4].toLowerCase();
+
+  if (firstValue <= 0 || secondValue <= 0) {
+    return {
+      valid: false,
+      message: "Weight values must be greater than 0",
+    };
+  }
+
+  // Do not allow kg -> g format
+  if (firstUnit === "kg" && secondUnit === "g") {
+    return {
+      valid: false,
+      message:
+        "If the first weight is in kg, the second weight must also be in kg",
+    };
+  }
+
+  const firstInGrams = toGrams(firstValue, firstUnit);
+  const secondInGrams = toGrams(secondValue, secondUnit);
+
+  if (firstInGrams >= secondInGrams) {
+    return {
+      valid: false,
+      message: "The second weight must be greater than the first weight",
+    };
+  }
+
+  return { valid: true };
+};
+
 export default function DeliveryChargePage() {
   const [deliveryCharges, setDeliveryCharges] = useState<DeliveryCharge[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -99,8 +168,9 @@ export default function DeliveryChargePage() {
   const [isAddOpen, setIsAddOpen] = useState<boolean>(false);
   const [isEditOpen, setIsEditOpen] = useState<boolean>(false);
 
-  const [validationErrors, setValidationErrors] =
-    useState<ValidationErrors>({});
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>(
+    {},
+  );
   const [alert, setAlert] = useState<AlertType>({
     show: false,
     type: "success",
@@ -110,6 +180,9 @@ export default function DeliveryChargePage() {
   const [formData, setFormData] = useState<DeliveryChargeForm>(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
+  const [selectedWeightRange, setSelectedWeightRange] = useState<string>("");
+  const [customWeightRange, setCustomWeightRange] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 15;
@@ -310,6 +383,8 @@ export default function DeliveryChargePage() {
     setFormData(emptyForm);
     setEditId(null);
     setValidationErrors({});
+    setSelectedWeightRange("");
+    setCustomWeightRange("");
   }, []);
 
   const validateForm = useCallback(() => {
@@ -339,6 +414,17 @@ export default function DeliveryChargePage() {
 
     if (!formData.weight_range.trim()) {
       errors.weight_range = ["Weight range is required"];
+    } else if (selectedWeightRange === "Other") {
+      if (!customWeightRange.trim()) {
+        errors.weight_range = ["Please enter a custom weight range"];
+      } else {
+        const customValidation = validateCustomWeightRange(customWeightRange);
+        if (!customValidation.valid) {
+          errors.weight_range = [
+            customValidation.message || "Invalid weight range",
+          ];
+        }
+      }
     }
 
     setValidationErrors(errors);
@@ -350,7 +436,7 @@ export default function DeliveryChargePage() {
     }
 
     return true;
-  }, [formData, showAlert]);
+  }, [formData, showAlert, selectedWeightRange, customWeightRange]);
 
   const handleAddItem = useCallback(async () => {
     if (!validateForm()) return;
@@ -364,13 +450,27 @@ export default function DeliveryChargePage() {
   }, [validateForm, createDeliveryCharge, formData, resetForm]);
 
   const handleEditClick = useCallback((item: DeliveryCharge) => {
+    const existingWeightRange = item.weight_range || "";
+    const isPreset = weightRangeOptions.includes(
+      existingWeightRange as (typeof weightRangeOptions)[number],
+    );
+
     setEditId(item.option_id);
     setFormData({
       delivery_title: item.delivery_title,
       delivery_price: item.delivery_price.toString(),
       deleivery_description: item.deleivery_description || "",
-      weight_range: item.weight_range || "",
+      weight_range: existingWeightRange,
     });
+
+    if (isPreset && existingWeightRange !== "Other") {
+      setSelectedWeightRange(existingWeightRange);
+      setCustomWeightRange("");
+    } else {
+      setSelectedWeightRange("Other");
+      setCustomWeightRange(existingWeightRange);
+    }
+
     setValidationErrors({});
     setIsEditOpen(true);
   }, []);
@@ -453,16 +553,86 @@ export default function DeliveryChargePage() {
           <Label htmlFor="weight_range">
             Weight Range <span className="text-destructive">*</span>
           </Label>
-          <Input
-            id="weight_range"
-            name="weight_range"
-            value={formData.weight_range}
-            onChange={handleInputChange}
-            placeholder="e.g., 0-5kg, 5-10kg, 10-20kg"
-            className={
-              validationErrors.weight_range ? "border-destructive" : ""
-            }
-          />
+
+          <Select
+            value={selectedWeightRange}
+            onValueChange={(value) => {
+              setSelectedWeightRange(value);
+
+              if (value === "Other") {
+                setFormData((prev) => ({
+                  ...prev,
+                  weight_range: customWeightRange,
+                }));
+              } else {
+                setCustomWeightRange("");
+                setFormData((prev) => ({
+                  ...prev,
+                  weight_range: value,
+                }));
+              }
+
+              if (validationErrors.weight_range) {
+                setValidationErrors((prev) => ({
+                  ...prev,
+                  weight_range: undefined,
+                }));
+              }
+            }}
+          >
+            <SelectTrigger
+              className={cn(
+                "w-full",
+                validationErrors.weight_range && "border-destructive",
+              )}
+            >
+              <SelectValue placeholder="Select weight range" />
+            </SelectTrigger>
+            <SelectContent>
+              {weightRangeOptions.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {selectedWeightRange === "Other" && (
+            <Input
+              id="custom_weight_range"
+              value={customWeightRange}
+              onChange={(e) => {
+                const value = e.target.value;
+                setCustomWeightRange(value);
+                setFormData((prev) => ({
+                  ...prev,
+                  weight_range: value,
+                }));
+
+                if (!value.trim()) {
+                  setValidationErrors((prev) => ({
+                    ...prev,
+                    weight_range: undefined,
+                  }));
+                  return;
+                }
+
+                const result = validateCustomWeightRange(value);
+
+                setValidationErrors((prev) => ({
+                  ...prev,
+                  weight_range: result.valid
+                    ? undefined
+                    : [result.message || "Invalid weight range"],
+                }));
+              }}
+              placeholder="Enter custom weight range (e.g. 500g - 1kg)"
+              className={
+                validationErrors.weight_range ? "border-destructive" : ""
+              }
+            />
+          )}
+
           {validationErrors.weight_range && (
             <p className="text-sm text-destructive">
               {validationErrors.weight_range[0]}
@@ -493,7 +663,13 @@ export default function DeliveryChargePage() {
         </div>
       </div>
     );
-  }, [formData, handleInputChange, validationErrors]);
+  }, [
+    formData,
+    handleInputChange,
+    validationErrors,
+    selectedWeightRange,
+    customWeightRange,
+  ]);
 
   if (isLoading) {
     return (
@@ -578,7 +754,13 @@ export default function DeliveryChargePage() {
             />
             {isRefreshing ? "Refreshing..." : "Refresh"}
           </Button>
-          <Button onClick={() => setIsAddOpen(true)} className="w-full sm:w-auto">
+          <Button
+            onClick={() => {
+              resetForm();
+              setIsAddOpen(true);
+            }}
+            className="w-full sm:w-auto"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add Delivery Charge
           </Button>
@@ -653,7 +835,6 @@ export default function DeliveryChargePage() {
         </CardHeader>
 
         <CardContent>
-          {/* Mobile cards */}
           <div className="space-y-3 md:hidden">
             {paginatedDeliveryCharges.length > 0 ? (
               paginatedDeliveryCharges.map((item) => (
@@ -693,14 +874,18 @@ export default function DeliveryChargePage() {
                     </div>
 
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Weight Range</p>
+                      <p className="text-xs text-muted-foreground">
+                        Weight Range
+                      </p>
                       <p className="mt-1 text-sm text-muted-foreground">
                         {item.weight_range || "—"}
                       </p>
                     </div>
 
                     <div className="rounded-lg bg-muted/40 p-3">
-                      <p className="text-xs text-muted-foreground">Description</p>
+                      <p className="text-xs text-muted-foreground">
+                        Description
+                      </p>
                       <p className="mt-1 break-words text-sm text-muted-foreground">
                         {item.deleivery_description || "—"}
                       </p>
@@ -727,13 +912,14 @@ export default function DeliveryChargePage() {
             )}
           </div>
 
-          {/* Desktop table */}
           <div className="hidden overflow-x-auto rounded-xl border md:block">
             <Table className="custom-table-header">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-20 text-center">ID</TableHead>
-                  <TableHead className="min-w-[200px]">Delivery Title</TableHead>
+                  <TableHead className="min-w-[200px]">
+                    Delivery Title
+                  </TableHead>
                   <TableHead className="w-40 text-center">Price ($)</TableHead>
                   <TableHead className="w-40">Weight Range</TableHead>
                   <TableHead className="min-w-[300px]">Description</TableHead>
@@ -838,26 +1024,29 @@ export default function DeliveryChargePage() {
                 </Button>
 
                 <div className="flex flex-wrap items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
-                    let page = index + 1;
-                    if (totalPages > 5 && currentPage > 3) {
-                      page = currentPage - 2 + index;
+                  {Array.from(
+                    { length: Math.min(5, totalPages) },
+                    (_, index) => {
+                      let page = index + 1;
+                      if (totalPages > 5 && currentPage > 3) {
+                        page = currentPage - 2 + index;
+                        if (page > totalPages) return null;
+                      }
                       if (page > totalPages) return null;
-                    }
-                    if (page > totalPages) return null;
 
-                    return (
-                      <Button
-                        key={page}
-                        variant={currentPage === page ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => handlePageChange(page)}
-                        className="min-w-9"
-                      >
-                        {page}
-                      </Button>
-                    );
-                  })}
+                      return (
+                        <Button
+                          key={page}
+                          variant={currentPage === page ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => handlePageChange(page)}
+                          className="min-w-9"
+                        >
+                          {page}
+                        </Button>
+                      );
+                    },
+                  )}
 
                   {totalPages > 5 && currentPage < totalPages - 2 && (
                     <>
@@ -889,7 +1078,6 @@ export default function DeliveryChargePage() {
         </CardContent>
       </Card>
 
-      {/* Add Dialog */}
       <Dialog
         open={isAddOpen}
         onOpenChange={(open) => {
@@ -920,14 +1108,15 @@ export default function DeliveryChargePage() {
               disabled={isSubmitting}
               className="w-full sm:w-auto"
             >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Add Delivery Charge
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => {
@@ -958,7 +1147,9 @@ export default function DeliveryChargePage() {
               disabled={isSubmitting}
               className="w-full sm:w-auto"
             >
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isSubmitting && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               Update Delivery Charge
             </Button>
           </DialogFooter>
