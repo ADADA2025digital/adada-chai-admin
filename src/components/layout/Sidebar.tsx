@@ -582,23 +582,38 @@ export function Sidebar({ onMobileNavigate }: SidebarProps) {
     >
       <div
         className={cn(
-          "flex h-14 items-center border-b border-zinc-200 transition-all duration-300 dark:border-white/5",
-          isExpanded ? "px-4" : "justify-center px-2",
+          "flex h-14 items-center border-b border-zinc-200 dark:border-white/5",
+          isExpanded ? "px-4" : "px-2",
         )}
       >
-        {isExpanded ? (
-          <div className="flex items-center gap-2">
-            {/* <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" /> */}
-            <img src={logo} alt="ADADA Chai Admin" className="h-13 w-18" />
+        <div
+          className={cn(
+            "flex w-full items-center overflow-hidden transition-all duration-300 ease-out",
+            isExpanded ? "justify-start gap-2" : "justify-center gap-0",
+          )}
+        >
+          <img
+            src={logo}
+            alt="ADADA Chai Admin"
+            className={cn(
+              "flex-shrink-0 transition-all duration-300 ease-out",
+              isExpanded ? "h-10 w-14" : "h-7 w-12",
+            )}
+          />
 
-            <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-white">
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-out",
+              isExpanded
+                ? "ml-2 max-w-[180px] opacity-100 translate-x-0"
+                : "ml-0 max-w-0 opacity-0 -translate-x-2",
+            )}
+          >
+            <h2 className="whitespace-nowrap text-base font-semibold tracking-tight text-zinc-900 dark:text-white">
               ADADA Chai Admin
             </h2>
           </div>
-        ) : (
-          // <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" />
-          <img src={logo} alt="ADADA Chai Admin" className="h-7 w-12" />
-        )}
+        </div>
       </div>
 
       <div className="sidebar-scroll flex-1 overflow-y-auto py-5">
