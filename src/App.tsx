@@ -86,9 +86,9 @@ function AppRoutes() {
         path="/login"
         element={
           <PublicRoute>
-            <div className="flex min-h-screen items-center justify-center bg-muted/10 p-4">
+            {/* <div className="flex min-h-screen items-center justify-center bg-muted/10 p-4"> */}
               <LoginPage />
-            </div>
+            {/* </div> */}
           </PublicRoute>
         }
       />
