@@ -1790,7 +1790,6 @@ export default function BusinessReports() {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
-                  Prev
                 </Button>
 
                 <div className="flex flex-wrap items-center gap-1">
@@ -1836,7 +1835,6 @@ export default function BusinessReports() {
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
-                  Next
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>

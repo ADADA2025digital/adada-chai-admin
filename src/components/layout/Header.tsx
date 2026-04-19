@@ -77,7 +77,7 @@ export function Header() {
         variant="ghost"
         size="icon"
         onClick={toggleSidebar}
-        className="hidden text-foreground hover:bg-zinc-100 md:inline-flex dark:hover:bg-accent"
+        className="hidden text-foreground hover:bg-zinc-100 md:inline-flex dark:hover:bg-accent cursor-pointer"
         title={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
       >
         <PanelLeft

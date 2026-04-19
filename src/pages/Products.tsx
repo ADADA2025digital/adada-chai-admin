@@ -66,12 +66,14 @@ import {
   Gift,
   Ruler,
   Weight,
+  List,
+  LayoutList,
+  Grid3X3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
-// Types
 type Category = {
   c_id: number;
   category_name: string;
@@ -229,19 +231,15 @@ type ProductFormFieldsProps = {
   formData: FormDataType;
   categories: Category[];
   discounts: Discount[];
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleInputChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
   handleCategoryChange: (value: string) => void;
-  handleAddAsset: () => void;
   handleRemoveAsset: (
     index: number,
     isExisting?: boolean,
     existingId?: number,
   ) => Promise<void>;
-  handleAssetFileChange: (index: number, file: File) => void;
-  handleAssetTypeChange: (index: number, type: string) => void;
   setFormData: React.Dispatch<React.SetStateAction<FormDataType>>;
   validationErrors: ValidationErrors;
   showNotification?: (type: "success" | "error", message: string) => void;
@@ -259,13 +257,9 @@ function ProductFormFields({
   formData,
   categories,
   discounts,
-  fileInputRef,
   handleInputChange,
   handleCategoryChange,
-  handleAddAsset,
   handleRemoveAsset,
-  handleAssetFileChange,
-  handleAssetTypeChange,
   setFormData,
   validationErrors,
   showNotification,
@@ -290,13 +284,6 @@ function ProductFormFields({
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const files = Array.from(e.dataTransfer.files);
-    handleFiles(files);
   };
 
   const handleFiles = (files: File[]) => {
@@ -363,6 +350,13 @@ function ProductFormFields({
     });
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
+  };
+
   const handleManualFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (files.length > 0) handleFiles(files);
@@ -420,9 +414,6 @@ function ProductFormFields({
   const discountOptions = discounts.map((discount) => ({
     value: String(discount.discount_id),
     label: `${discount.discount_name} - ${discount.discount_percentage}% OFF`,
-    percentage: discount.discount_percentage,
-    start_date: discount.start_date,
-    end_date: discount.end_date,
   }));
 
   const editorConfiguration = {
@@ -488,7 +479,7 @@ function ProductFormFields({
           Basic Information
         </h3>
 
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="product_name" className="text-foreground">
               Product Name <span className="text-destructive">*</span>
@@ -601,7 +592,7 @@ function ProductFormFields({
           </div>
         </div>
 
-        <div className="grid gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 pt-2 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="weight" className="text-foreground">
               Weight <span className="text-xs text-muted-foreground">(kg)</span>
@@ -735,7 +726,7 @@ function ProductFormFields({
           </div>
         </div>
 
-        <div className="grid items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="grid min-w-0 gap-2">
             <Label htmlFor="buy_price" className="text-foreground">
               Buy Price <span className="text-destructive">*</span>
@@ -856,24 +847,9 @@ function ProductFormFields({
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent className="border-border bg-popover text-popover-foreground shadow-lg">
-                <SelectItem
-                  value="Active"
-                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
-                >
-                  Active
-                </SelectItem>
-                <SelectItem
-                  value="Inactive"
-                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
-                >
-                  Inactive
-                </SelectItem>
-                <SelectItem
-                  value="Draft"
-                  className="cursor-pointer text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
-                >
-                  Draft
-                </SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="Draft">Draft</SelectItem>
               </SelectContent>
             </Select>
             <div className="min-h-[20px]">
@@ -908,10 +884,7 @@ function ProductFormFields({
 
           <div className="grid min-w-0 gap-4 md:grid-cols-2">
             <div className="grid min-w-0 gap-2">
-              <Label
-                htmlFor="selected_discount"
-                className="flex items-center gap-2 text-foreground"
-              >
+              <Label htmlFor="selected_discount" className="text-foreground">
                 Select Discount
               </Label>
               <Select
@@ -933,21 +906,14 @@ function ProductFormFields({
                 </SelectTrigger>
                 <SelectContent className="max-h-[300px] border-border bg-popover text-popover-foreground shadow-lg">
                   {discountOptions.map((discount) => (
-                    <SelectItem
-                      key={discount.value}
-                      value={discount.value}
-                      className="text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground data-[state=checked]:bg-muted"
-                    >
+                    <SelectItem key={discount.value} value={discount.value}>
                       <span className="block max-w-[260px] truncate sm:max-w-none">
                         {discount.label}
                       </span>
                     </SelectItem>
                   ))}
 
-                  <SelectItem
-                    value="create_new"
-                    className="font-medium text-popover-foreground data-[highlighted]:bg-muted data-[highlighted]:text-foreground"
-                  >
+                  <SelectItem value="create_new">
                     <span className="inline-flex items-center gap-2">
                       <PlusCircle className="h-4 w-4" />
                       Create New Discount
@@ -960,7 +926,6 @@ function ProductFormFields({
             <div className="flex items-end">
               <Button
                 type="button"
-                variant="default"
                 className="w-full"
                 onClick={handleApplySelectedDiscount}
                 disabled={isSubmitting || !formData.selected_discount}
@@ -1037,11 +1002,9 @@ function ProductFormFields({
                   "[&_.ck-editor]:max-w-full",
                   "[&_.ck-toolbar]:flex-wrap",
                   "[&_.ck-toolbar]:overflow-x-auto",
-                  "[&_.ck-toolbar]:gap-1",
                   "[&_.ck-toolbar__items]:flex-wrap",
                   "[&_.ck-content]:break-words",
                   "[&_.ck-editor__editable_inline]:min-h-[180px]",
-                  "[&_.ck-editor__editable_inline]:max-w-full",
                   validationErrors.description
                     ? "border-destructive"
                     : "border-input",
@@ -1080,11 +1043,9 @@ function ProductFormFields({
                   "[&_.ck-editor]:max-w-full",
                   "[&_.ck-toolbar]:flex-wrap",
                   "[&_.ck-toolbar]:overflow-x-auto",
-                  "[&_.ck-toolbar]:gap-1",
                   "[&_.ck-toolbar__items]:flex-wrap",
                   "[&_.ck-content]:break-words",
                   "[&_.ck-editor__editable_inline]:min-h-[180px]",
-                  "[&_.ck-editor__editable_inline]:max-w-full",
                   validationErrors.specification
                     ? "border-destructive"
                     : "border-input",
@@ -1099,7 +1060,10 @@ function ProductFormFields({
                     if (handleSpecificationChange) {
                       handleSpecificationChange(data);
                     } else {
-                      setFormData((prev) => ({ ...prev, specification: data }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        specification: data,
+                      }));
                     }
                   }}
                   disabled={isSubmitting}
@@ -1362,7 +1326,6 @@ function ProductFormFields({
 
 export default function Products() {
   const navigate = useNavigate();
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const isUpdatingRef = React.useRef(false);
 
   const [products, setProducts] = React.useState<Product[]>([]);
@@ -1378,6 +1341,10 @@ export default function Products() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [validationErrors, setValidationErrors] =
     React.useState<ValidationErrors>({});
+  const [listingView, setListingView] = React.useState<
+    "table" | "card-12" | "card-4"
+  >("table");
+  const [isMobile, setIsMobile] = React.useState(false);
 
   const [isAddOpen, setIsAddOpen] = React.useState(false);
   const [isEditOpen, setIsEditOpen] = React.useState(false);
@@ -1389,10 +1356,9 @@ export default function Products() {
   const [editProductId, setEditProductId] = React.useState<number | null>(null);
   const [newDiscountData, setNewDiscountData] =
     React.useState<NewDiscountData>(emptyNewDiscount);
-
   const [formData, setFormData] = React.useState<FormDataType>(emptyForm);
-
   const [currentPage, setCurrentPage] = React.useState(1);
+
   const productsPerPage = 5;
 
   const [alert, setAlert] = React.useState<{
@@ -1400,6 +1366,21 @@ export default function Products() {
     type: "success" | "error";
     message: string;
   }>({ show: false, type: "success", message: "" });
+
+  React.useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+
+      if (mobile && listingView === "table") {
+        setListingView("card-12");
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [listingView]);
 
   const formatDateTime = React.useCallback((date: Date): string => {
     return date.toLocaleString("en-US", {
@@ -1486,7 +1467,7 @@ export default function Products() {
       errors.quantity = ["Quantity is required"];
       isValid = false;
     } else {
-      const quantityNum = parseInt(formData.quantity);
+      const quantityNum = parseInt(formData.quantity, 10);
       if (isNaN(quantityNum)) {
         errors.quantity = ["Quantity must be a valid number"];
         isValid = false;
@@ -1548,57 +1529,34 @@ export default function Products() {
       isValid = false;
     }
 
-    const hasAssets = formData.assets && formData.assets.length > 0;
-    if (!hasAssets) {
+    if (!formData.assets || formData.assets.length === 0) {
       errors.assets = [
         "At least one product asset (image, video, or document) is required",
       ];
       isValid = false;
     }
 
-    if (formData.weight && formData.weight !== "") {
-      const weightNum = parseFloat(formData.weight);
-      if (isNaN(weightNum)) {
-        errors.weight = ["Weight must be a valid number"];
-        isValid = false;
-      } else if (weightNum < 0) {
-        errors.weight = ["Weight cannot be negative"];
-        isValid = false;
-      }
-    }
+    const numericFields: Array<
+      keyof Pick<FormDataType, "weight" | "height" | "length" | "width">
+    > = ["weight", "height", "length", "width"];
 
-    if (formData.height && formData.height !== "") {
-      const heightNum = parseFloat(formData.height);
-      if (isNaN(heightNum)) {
-        errors.height = ["Height must be a valid number"];
-        isValid = false;
-      } else if (heightNum < 0) {
-        errors.height = ["Height cannot be negative"];
-        isValid = false;
+    numericFields.forEach((field) => {
+      const value = formData[field];
+      if (value && value !== "") {
+        const n = parseFloat(value);
+        if (isNaN(n)) {
+          errors[field] = [
+            `${field[0].toUpperCase() + field.slice(1)} must be a valid number`,
+          ];
+          isValid = false;
+        } else if (n < 0) {
+          errors[field] = [
+            `${field[0].toUpperCase() + field.slice(1)} cannot be negative`,
+          ];
+          isValid = false;
+        }
       }
-    }
-
-    if (formData.length && formData.length !== "") {
-      const lengthNum = parseFloat(formData.length);
-      if (isNaN(lengthNum)) {
-        errors.length = ["Length must be a valid number"];
-        isValid = false;
-      } else if (lengthNum < 0) {
-        errors.length = ["Length cannot be negative"];
-        isValid = false;
-      }
-    }
-
-    if (formData.width && formData.width !== "") {
-      const widthNum = parseFloat(formData.width);
-      if (isNaN(widthNum)) {
-        errors.width = ["Width must be a valid number"];
-        isValid = false;
-      } else if (widthNum < 0) {
-        errors.width = ["Width cannot be negative"];
-        isValid = false;
-      }
-    }
+    });
 
     setValidationErrors(errors);
     return isValid;
@@ -1685,8 +1643,7 @@ export default function Products() {
   }, [products]);
 
   const featuredProducts = React.useMemo(() => {
-    return products.filter((item) => item.featured === true || item.featured === 1)
-      .length;
+    return products.filter((item) => item.featured === true).length;
   }, [products]);
 
   const lowStockProducts = React.useMemo(() => {
@@ -1762,22 +1719,6 @@ export default function Products() {
     }
   };
 
-  const handleAddAsset = () => {
-    setFormData((prev) => ({
-      ...prev,
-      assets: [
-        ...(prev.assets || []),
-        {
-          id: Math.random().toString(36).slice(2, 11),
-          file: null,
-          preview: "",
-          type: "image",
-          isExisting: false,
-        },
-      ],
-    }));
-  };
-
   const handleRemoveAsset = async (
     index: number,
     isExisting?: boolean,
@@ -1787,117 +1728,24 @@ export default function Products() {
       try {
         await api.delete(`/products/assets/${existingId}`);
         showAlert("success", "Asset deleted successfully");
-
-        setFormData((prev) => ({
-          ...prev,
-          assets: (prev.assets || []).filter((_, i) => i !== index),
-        }));
-
-        if (validationErrors.assets) {
-          setValidationErrors((prev) => ({ ...prev, assets: undefined }));
-        }
       } catch (err: any) {
         console.error("Error deleting asset:", err);
         showAlert(
           "error",
           err.response?.data?.message || "Failed to delete asset",
         );
-      }
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        assets: (prev.assets || []).filter((_, i) => i !== index),
-      }));
-
-      if (validationErrors.assets) {
-        setValidationErrors((prev) => ({ ...prev, assets: undefined }));
+        return;
       }
     }
-  };
 
-  const handleAssetFileChange = (index: number, file: File) => {
-    if (file.size > 20 * 1024 * 1024) {
-      showAlert("error", "File size must be less than 20MB");
-      return;
+    setFormData((prev) => ({
+      ...prev,
+      assets: (prev.assets || []).filter((_, i) => i !== index),
+    }));
+
+    if (validationErrors.assets) {
+      setValidationErrors((prev) => ({ ...prev, assets: undefined }));
     }
-
-    const validTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/webp",
-      "video/mp4",
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-
-    if (!validTypes.includes(file.type)) {
-      showAlert(
-        "error",
-        "File type not supported. Please upload JPG, PNG, WEBP, MP4, PDF, or DOCX files.",
-      );
-      return;
-    }
-
-    const assetType = file.type.startsWith("image/")
-      ? "image"
-      : file.type.startsWith("video/")
-        ? "video"
-        : "document";
-
-    if (file.type.startsWith("image/")) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => {
-          const newAssets = [...(prev.assets || [])];
-          newAssets[index] = {
-            ...newAssets[index],
-            file,
-            preview: reader.result as string,
-            type: assetType,
-            isExisting: false,
-          };
-          return { ...prev, assets: newAssets };
-        });
-
-        if (validationErrors.assets) {
-          setValidationErrors((prev) => ({ ...prev, assets: undefined }));
-        }
-      };
-      reader.readAsDataURL(file);
-    } else {
-      setFormData((prev) => {
-        const newAssets = [...(prev.assets || [])];
-        newAssets[index] = {
-          ...newAssets[index],
-          file,
-          preview: "",
-          type: assetType,
-          isExisting: false,
-        };
-        return { ...prev, assets: newAssets };
-      });
-
-      if (validationErrors.assets) {
-        setValidationErrors((prev) => ({ ...prev, assets: undefined }));
-      }
-    }
-  };
-
-  const handleAssetTypeChange = (index: number, type: string) => {
-    setFormData((prev) => {
-      const newAssets = [...(prev.assets || [])];
-      newAssets[index] = {
-        ...newAssets[index],
-        type,
-      };
-      if (newAssets[index].file) {
-        newAssets[index].file = null;
-        newAssets[index].preview = "";
-      }
-      return { ...prev, assets: newAssets };
-    });
   };
 
   const resetForm = () => {
@@ -2052,7 +1900,7 @@ export default function Products() {
       console.error("Error creating discount:", err);
       if (err.response?.status === 422 && err.response?.data?.errors) {
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        showAlert("error", firstError || "Validation failed");
+        showAlert("error", (firstError as string) || "Validation failed");
       } else {
         showAlert(
           "error",
@@ -2066,77 +1914,7 @@ export default function Products() {
 
   const handleAddProduct = async () => {
     if (!validateForm()) {
-      const errors: ValidationErrors = {};
-
-      if (!formData.product_name || formData.product_name.trim() === "") {
-        errors.product_name = ["Product name is required"];
-      } else if (formData.product_name.trim().length < 3) {
-        errors.product_name = ["Product name must be at least 3 characters"];
-      }
-
-      if (!formData.c_id || formData.c_id === "") {
-        errors.c_id = ["Category is required"];
-      }
-
-      if (!formData.sku || formData.sku.trim() === "") {
-        errors.sku = ["SKU is required"];
-      } else if (formData.sku.trim().length < 3) {
-        errors.sku = ["SKU must be at least 3 characters"];
-      }
-
-      if (!formData.buy_price || formData.buy_price === "") {
-        errors.buy_price = ["Buy price is required"];
-      }
-
-      if (!formData.sell_price || formData.sell_price === "") {
-        errors.sell_price = ["Sell price is required"];
-      }
-
-      if (!formData.quantity || formData.quantity === "") {
-        errors.quantity = ["Quantity is required"];
-      }
-
-      if (!formData.product_status || formData.product_status === "") {
-        errors.product_status = ["Product status is required"];
-      }
-
-      const plainDescription = stripHtml(formData.description || "");
-      if (!formData.description || plainDescription.trim() === "") {
-        errors.description = ["Description is required"];
-      }
-
-      const plainSpecification = stripHtml(formData.specification || "");
-      if (!formData.specification || plainSpecification.trim() === "") {
-        errors.specification = ["Specifications are required"];
-      }
-
-      if (
-        !formData.product_meta_title ||
-        formData.product_meta_title.trim() === ""
-      ) {
-        errors.product_meta_title = ["Meta title is required"];
-      }
-
-      if (!formData.meta_keywords || formData.meta_keywords.trim() === "") {
-        errors.meta_keywords = ["Meta keywords are required"];
-      }
-
-      if (
-        !formData.meta_description ||
-        formData.meta_description.trim() === ""
-      ) {
-        errors.meta_description = ["Meta description is required"];
-      }
-
-      const hasAssets = formData.assets && formData.assets.length > 0;
-      if (!hasAssets) {
-        errors.assets = [
-          "At least one product asset (image, video, or document) is required",
-        ];
-      }
-
-      setValidationErrors(errors);
-      const firstError = Object.values(errors)[0]?.[0];
+      const firstError = Object.values(validationErrors)[0]?.[0];
       if (firstError) showAlert("error", firstError);
       return;
     }
@@ -2164,22 +1942,15 @@ export default function Products() {
       formDataToSend.append("meta_description", formData.meta_description);
       formDataToSend.append("meta_robots", formData.meta_robots);
 
-      if (formData.weight && formData.weight !== "") {
-        formDataToSend.append("weight", formData.weight);
-      }
-      if (formData.height && formData.height !== "") {
-        formDataToSend.append("height", formData.height);
-      }
-      if (formData.length && formData.length !== "") {
-        formDataToSend.append("length", formData.length);
-      }
-      if (formData.width && formData.width !== "") {
-        formDataToSend.append("width", formData.width);
-      }
+      if (formData.weight) formDataToSend.append("weight", formData.weight);
+      if (formData.height) formDataToSend.append("height", formData.height);
+      if (formData.length) formDataToSend.append("length", formData.length);
+      if (formData.width) formDataToSend.append("width", formData.width);
 
       const validAssets = (formData.assets || []).filter(
         (asset) => asset.file !== null,
       );
+
       validAssets.forEach((asset) => {
         if (asset.file) {
           formDataToSend.append("assets[]", asset.file);
@@ -2207,7 +1978,7 @@ export default function Products() {
       if (err.response?.status === 422 && err.response?.data?.errors) {
         setValidationErrors(err.response.data.errors);
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        if (firstError) showAlert("error", firstError);
+        if (firstError) showAlert("error", firstError as string);
       } else {
         showAlert(
           "error",
@@ -2264,77 +2035,7 @@ export default function Products() {
     if (editProductId === null) return;
 
     if (!validateForm()) {
-      const errors: ValidationErrors = {};
-
-      if (!formData.product_name || formData.product_name.trim() === "") {
-        errors.product_name = ["Product name is required"];
-      } else if (formData.product_name.trim().length < 3) {
-        errors.product_name = ["Product name must be at least 3 characters"];
-      }
-
-      if (!formData.c_id || formData.c_id === "") {
-        errors.c_id = ["Category is required"];
-      }
-
-      if (!formData.sku || formData.sku.trim() === "") {
-        errors.sku = ["SKU is required"];
-      } else if (formData.sku.trim().length < 3) {
-        errors.sku = ["SKU must be at least 3 characters"];
-      }
-
-      if (!formData.buy_price || formData.buy_price === "") {
-        errors.buy_price = ["Buy price is required"];
-      }
-
-      if (!formData.sell_price || formData.sell_price === "") {
-        errors.sell_price = ["Sell price is required"];
-      }
-
-      if (!formData.quantity || formData.quantity === "") {
-        errors.quantity = ["Quantity is required"];
-      }
-
-      if (!formData.product_status || formData.product_status === "") {
-        errors.product_status = ["Product status is required"];
-      }
-
-      const plainDescription = stripHtml(formData.description || "");
-      if (!formData.description || plainDescription.trim() === "") {
-        errors.description = ["Description is required"];
-      }
-
-      const plainSpecification = stripHtml(formData.specification || "");
-      if (!formData.specification || plainSpecification.trim() === "") {
-        errors.specification = ["Specifications are required"];
-      }
-
-      if (
-        !formData.product_meta_title ||
-        formData.product_meta_title.trim() === ""
-      ) {
-        errors.product_meta_title = ["Meta title is required"];
-      }
-
-      if (!formData.meta_keywords || formData.meta_keywords.trim() === "") {
-        errors.meta_keywords = ["Meta keywords are required"];
-      }
-
-      if (
-        !formData.meta_description ||
-        formData.meta_description.trim() === ""
-      ) {
-        errors.meta_description = ["Meta description is required"];
-      }
-
-      const hasAssets = formData.assets && formData.assets.length > 0;
-      if (!hasAssets) {
-        errors.assets = [
-          "At least one product asset (image, video, or document) is required",
-        ];
-      }
-
-      setValidationErrors(errors);
-      const firstError = Object.values(errors)[0]?.[0];
+      const firstError = Object.values(validationErrors)[0]?.[0];
       if (firstError) showAlert("error", firstError);
       return;
     }
@@ -2349,13 +2050,7 @@ export default function Products() {
       formDataToSend.append("supplier_sku", formData.supplier_sku);
       formDataToSend.append("buy_price", formData.buy_price);
       formDataToSend.append("sell_price", formData.sell_price);
-
-      if (formData.discount_id && formData.discount_id !== "") {
-        formDataToSend.append("discount_id", formData.discount_id);
-      } else {
-        formDataToSend.append("discount_id", "");
-      }
-
+      formDataToSend.append("discount_id", formData.discount_id || "");
       formDataToSend.append("quantity", formData.quantity);
       formDataToSend.append("specification", formData.specification);
       formDataToSend.append("product_status", formData.product_status);
@@ -2364,27 +2059,10 @@ export default function Products() {
       formDataToSend.append("meta_keywords", formData.meta_keywords);
       formDataToSend.append("meta_description", formData.meta_description);
       formDataToSend.append("meta_robots", formData.meta_robots);
-
-      if (formData.weight && formData.weight !== "") {
-        formDataToSend.append("weight", formData.weight);
-      } else {
-        formDataToSend.append("weight", "");
-      }
-      if (formData.height && formData.height !== "") {
-        formDataToSend.append("height", formData.height);
-      } else {
-        formDataToSend.append("height", "");
-      }
-      if (formData.length && formData.length !== "") {
-        formDataToSend.append("length", formData.length);
-      } else {
-        formDataToSend.append("length", "");
-      }
-      if (formData.width && formData.width !== "") {
-        formDataToSend.append("width", formData.width);
-      } else {
-        formDataToSend.append("width", "");
-      }
+      formDataToSend.append("weight", formData.weight || "");
+      formDataToSend.append("height", formData.height || "");
+      formDataToSend.append("length", formData.length || "");
+      formDataToSend.append("width", formData.width || "");
 
       const newAssets = (formData.assets || []).filter(
         (asset) => !asset.isExisting && asset.file,
@@ -2420,7 +2098,7 @@ export default function Products() {
       if (err.response?.status === 422 && err.response?.data?.errors) {
         setValidationErrors(err.response.data.errors);
         const firstError = Object.values(err.response.data.errors)[0]?.[0];
-        if (firstError) showAlert("error", firstError);
+        if (firstError) showAlert("error", firstError as string);
       } else if (err.response?.status === 404) {
         showAlert("error", "Product not found");
       } else {
@@ -2488,6 +2166,322 @@ export default function Products() {
     setCurrentPage(page);
   };
 
+  const renderProductCard = (product: Product, compact: boolean = false) => {
+    const discount = product.discount;
+    const discountedPrice = discount
+      ? product.sell_price * (1 - discount.discount_percentage / 100)
+      : null;
+
+    if (!compact) {
+      return (
+        <div
+          key={product.product_id}
+          className="rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+            <div className="shrink-0">
+              <div className="h-24 w-24 overflow-hidden rounded-md border border-border bg-muted sm:h-28 sm:w-28">
+                {product.assets && product.assets[0]?.asset_url ? (
+                  <img
+                    src={product.assets[0].asset_url}
+                    alt={product.product_name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <Package className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-4">
+              <div className="min-w-0 rounded-lg bg-muted/20 px-3">
+                <div className="flex flex-col gap-2 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                      No {product.product_id}
+                    </span>
+                    <h3 className="min-w-0 truncate text-lg font-semibold leading-6 text-foreground">
+                      {product.product_name}
+                    </h3>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground xl:justify-end">
+                    <span className="whitespace-nowrap">
+                      SKU: {product.sku}
+                    </span>
+                    {product.supplier_sku && (
+                      <span className="whitespace-nowrap">
+                        Sup: {product.supplier_sku}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 rounded-lg bg-muted/40 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="p-3">
+                  <p className="text-xs text-muted-foreground">Price</p>
+                  {discountedPrice ? (
+                    <div>
+                      <p className="text-xs line-through text-muted-foreground">
+                        ${product.sell_price.toFixed(2)}
+                      </p>
+                      <p className="font-semibold text-green-600 dark:text-green-400">
+                        ${discountedPrice.toFixed(2)}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="font-semibold text-foreground">
+                      ${product.sell_price.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-3">
+                  <p className="text-xs text-muted-foreground">Quantity</p>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      product.quantity < 10 && "text-red-600 dark:text-red-400",
+                      product.quantity < 50 &&
+                        product.quantity >= 10 &&
+                        "text-yellow-600 dark:text-yellow-400",
+                      product.quantity >= 50 && "text-foreground",
+                    )}
+                  >
+                    {product.quantity}
+                  </span>
+                </div>
+
+                <div className="p-3">
+                  <p className="text-xs text-muted-foreground">Status</p>
+                  <span
+                    className={cn(
+                      "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                      product.product_status === "Active"
+                        ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                        : product.product_status === "Inactive"
+                          ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                          : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+                    )}
+                  >
+                    {product.product_status || "Active"}
+                  </span>
+                </div>
+
+                <div className="p-3">
+                  <p className="text-xs text-muted-foreground">Discount</p>
+                  {discount ? (
+                    <div>
+                      <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                        {discount.discount_percentage}% OFF
+                      </span>
+                      <p className="mt-1 break-words text-xs text-muted-foreground">
+                        {discount.discount_name}
+                      </p>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid w-full shrink-0 grid-cols-3 gap-2 self-center lg:flex lg:w-auto lg:flex-col">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewClick(product)}
+                className="w-full justify-center py-1.5 lg:w-[140px]"
+                title="View product"
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                View
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEditClick(product)}
+                className="w-full justify-center py-1.5 lg:w-[140px]"
+                title="Edit product"
+              >
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleDeleteClick(product)}
+                className="w-full justify-center py-1.5 hover:text-destructive lg:w-[140px]"
+                title="Delete product"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={product.product_id}
+        className="rounded-xl border border-border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+      >
+        <div className="space-y-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
+              {product.assets && product.assets[0]?.asset_url ? (
+                <img
+                  src={product.assets[0].asset_url}
+                  alt={product.product_name}
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center">
+                  <Package className="h-6 w-6 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 flex-col items-start gap-1 sm:flex-row sm:items-center sm:gap-2">
+                    <span className="shrink-0 whitespace-nowrap text-xs text-muted-foreground">
+                      No {product.product_id}
+                    </span>
+                    <p className="min-w-0 break-words text-sm font-semibold leading-5 text-foreground">
+                      {product.product_name}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                <span className="whitespace-nowrap">SKU: {product.sku}</span>
+                {product.supplier_sku && (
+                  <span className="whitespace-nowrap">
+                    Sup: {product.supplier_sku}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3 rounded-lg bg-muted/40 p-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-2.5">
+                <p className="text-xs text-muted-foreground">Price</p>
+                {discountedPrice ? (
+                  <div>
+                    <p className="text-xs line-through text-muted-foreground">
+                      ${product.sell_price.toFixed(2)}
+                    </p>
+                    <p className="font-semibold text-green-600 dark:text-green-400">
+                      ${discountedPrice.toFixed(2)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="font-semibold text-foreground">
+                    ${product.sell_price.toFixed(2)}
+                  </p>
+                )}
+              </div>
+
+              <div className="p-2.5">
+                <p className="text-xs text-muted-foreground">Quantity</p>
+                <span
+                  className={cn(
+                    "font-semibold",
+                    product.quantity < 10 && "text-red-600 dark:text-red-400",
+                    product.quantity < 50 &&
+                      product.quantity >= 10 &&
+                      "text-yellow-600 dark:text-yellow-400",
+                    product.quantity >= 50 && "text-foreground",
+                  )}
+                >
+                  {product.quantity}
+                </span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-2.5">
+                <p className="text-xs text-muted-foreground">Status</p>
+                <span
+                  className={cn(
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                    product.product_status === "Active"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                      : product.product_status === "Inactive"
+                        ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                        : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+                  )}
+                >
+                  {product.product_status || "Active"}
+                </span>
+              </div>
+
+              <div className="p-2.5">
+                <p className="text-xs text-muted-foreground">Discount</p>
+                {discount ? (
+                  <div className="min-w-0">
+                    <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                      {discount.discount_percentage}% OFF
+                    </span>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {discount.discount_name}
+                    </p>
+                  </div>
+                ) : (
+                  <span className="text-sm text-muted-foreground">—</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleViewClick(product)}
+              className="w-full"
+              title="View product"
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleEditClick(product)}
+              className="w-full"
+              title="Edit product"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => handleDeleteClick(product)}
+              className="w-full hover:text-destructive"
+              title="Delete product"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (loading && products.length === 0) {
     return (
       <div className="space-y-4 bg-background px-3 py-4 sm:space-y-6 sm:p-6">
@@ -2504,7 +2498,7 @@ export default function Products() {
 
         <Separator className="bg-border" />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
             <Card key={i} className="rounded-2xl bg-card shadow-sm">
               <CardContent className="flex items-center justify-between p-5">
@@ -2605,7 +2599,7 @@ export default function Products() {
 
       <Separator className="bg-border" />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div className="min-w-0">
@@ -2651,7 +2645,9 @@ export default function Products() {
         <Card className="rounded-2xl bg-card shadow-sm transition-shadow hover:shadow-md">
           <CardContent className="flex items-center justify-between p-5">
             <div className="min-w-0">
-              <p className="text-sm text-muted-foreground">Low Stock (&lt;50)</p>
+              <p className="text-sm text-muted-foreground">
+                Low Stock (&lt;50)
+              </p>
               <h3 className="mt-1 text-2xl font-bold text-foreground">
                 {lowStockProducts}
               </h3>
@@ -2672,396 +2668,297 @@ export default function Products() {
             </CardDescription>
           </div>
 
-          <div className="relative w-full min-w-0 md:w-80">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Search product..."
-              className="border-input bg-background pl-10 text-foreground placeholder:text-muted-foreground"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+          <div className="flex w-full min-w-0 flex-col gap-3 lg:w-auto lg:flex-row lg:items-center">
+            <div className="relative w-full min-w-0 lg:w-80">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Search product..."
+                className="border-input bg-background pl-10 text-foreground placeholder:text-muted-foreground"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="flex w-full flex-wrap items-center gap-2 rounded-lg border border-border p-1 sm:w-auto">
+              {!isMobile && (
+                <Button
+                  type="button"
+                  variant={listingView === "table" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setListingView("table")}
+                  title="Table view"
+                  className="flex-1 sm:flex-none"
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                variant={listingView === "card-12" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setListingView("card-12")}
+                title="Full width card view"
+                className="flex-1 sm:flex-none"
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+
+              <Button
+                type="button"
+                variant={listingView === "card-4" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setListingView("card-4")}
+                title="Grid card view"
+                className="flex-1 sm:flex-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
 
         <CardContent>
-          {/* Mobile cards */}
-          <div className="space-y-3 md:hidden">
-            {paginatedProducts.length > 0 ? (
-              paginatedProducts.map((product) => {
-                const discount = product.discount;
-                const discountedPrice = discount
-                  ? product.sell_price * (1 - discount.discount_percentage / 100)
-                  : null;
-
-                return (
-                  <div
-                    key={product.product_id}
-                    className="rounded-xl border border-border bg-card p-4 shadow-sm"
-                  >
-                    <div className="space-y-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
-                          {product.assets && product.assets[0]?.asset_url ? (
-                            <img
-                              src={product.assets[0].asset_url}
-                              alt={product.product_name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <Package className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-muted-foreground">
-                            ID #{product.product_id}
-                          </p>
-                          <p className="break-words pr-1 text-sm font-medium leading-5 text-foreground">
-                            {product.product_name}
-                          </p>
-                          <p className="mt-1 break-all text-xs text-muted-foreground">
-                            SKU: {product.sku}
-                          </p>
-                          {product.supplier_sku && (
-                            <p className="break-all text-xs text-muted-foreground">
-                              Sup: {product.supplier_sku}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewClick(product)}
-                          className="min-w-[90px] flex-1"
-                          title="View product"
-                        >
-                          <Eye className="mr-2 h-4 w-4" />
-                          View
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditClick(product)}
-                          className="min-w-[90px] flex-1"
-                          title="Edit product"
-                        >
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteClick(product)}
-                          className="min-w-[90px] flex-1 hover:text-destructive"
-                          title="Delete product"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid gap-3 rounded-lg bg-muted/40 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          Price
-                        </span>
-                        <div className="text-right">
-                          {discountedPrice ? (
-                            <>
-                              <p className="text-xs line-through text-muted-foreground">
-                                ${product.sell_price.toFixed(2)}
-                              </p>
-                              <p className="font-semibold text-green-600 dark:text-green-400">
-                                ${discountedPrice.toFixed(2)}
-                              </p>
-                            </>
-                          ) : (
-                            <p className="font-semibold text-foreground">
-                              ${product.sell_price.toFixed(2)}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          Discount
-                        </span>
-                        <div className="text-right">
-                          {discount ? (
-                            <>
-                              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                {discount.discount_percentage}% OFF
-                              </span>
-                              <p className="mt-1 break-words text-xs text-muted-foreground">
-                                {discount.discount_name}
-                              </p>
-                            </>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">
-                              —
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          Quantity
-                        </span>
-                        <span
-                          className={cn(
-                            "font-medium",
-                            product.quantity < 10 &&
-                              "text-red-600 dark:text-red-400",
-                            product.quantity < 50 &&
-                              product.quantity >= 10 &&
-                              "text-yellow-600 dark:text-yellow-400",
-                            product.quantity >= 50 && "text-foreground",
-                          )}
-                        >
-                          {product.quantity}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-xs text-muted-foreground">
-                          Status
-                        </span>
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                            product.product_status === "Active"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                              : product.product_status === "Inactive"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-                          )}
-                        >
-                          {product.product_status || "Active"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
-                <div className="flex flex-col items-center gap-2">
-                  <Package className="h-8 w-8 opacity-50" />
-                  <p>No products found</p>
-                  {search && (
-                    <Button
-                      variant="link"
-                      onClick={() => setSearch("")}
-                      className="text-sm"
-                    >
-                      Clear search
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-border hover:bg-muted/50">
-                  <TableHead className="w-20 text-center text-foreground">
-                    ID
-                  </TableHead>
-                  <TableHead className="w-[72px] text-foreground">
-                    Image
-                  </TableHead>
-                  <TableHead className="text-foreground">
-                    Product Name
-                  </TableHead>
-                  <TableHead className="text-foreground">Price</TableHead>
-                  <TableHead className="text-foreground">Discount</TableHead>
-                  <TableHead className="text-foreground">Quantity</TableHead>
-                  <TableHead className="text-foreground">SKU</TableHead>
-                  <TableHead className="text-foreground">Status</TableHead>
-                  <TableHead className="text-center text-foreground">
-                    Actions
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-
-              <TableBody>
-                {paginatedProducts.length > 0 ? (
-                  paginatedProducts.map((product) => {
-                    const discount = product.discount;
-                    const discountedPrice = discount
-                      ? product.sell_price *
-                        (1 - discount.discount_percentage / 100)
-                      : null;
-
-                    return (
-                      <TableRow
-                        key={product.product_id}
-                        className="border-border hover:bg-muted/50"
-                      >
-                        <TableCell className="font-mono text-center text-sm text-foreground">
-                          {product.product_id}
-                        </TableCell>
-                        <TableCell className="w-[72px]">
-                          <div className="h-12 w-12 overflow-hidden rounded-md border border-border bg-muted">
-                            {product.assets && product.assets[0]?.asset_url ? (
-                              <img
-                                src={product.assets[0].asset_url}
-                                alt={product.product_name}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <Package className="m-3 h-6 w-6 text-muted-foreground" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-[220px]">
-                          <p className="break-words font-medium leading-5 text-foreground">
-                            {product.product_name}
-                          </p>
-                          {product.supplier_sku && (
-                            <p className="mt-1 break-all text-xs text-muted-foreground">
-                              Sup: {product.supplier_sku}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {discountedPrice ? (
-                            <div>
-                              <span className="text-sm text-muted-foreground line-through">
-                                ${product.sell_price.toFixed(2)}
-                              </span>
-                              <br />
-                              <span className="font-semibold text-green-600 dark:text-green-400">
-                                ${discountedPrice.toFixed(2)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="font-semibold text-foreground">
-                              ${product.sell_price.toFixed(2)}
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {discount ? (
-                            <div>
-                              <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
-                                {discount.discount_percentage}% OFF
-                              </span>
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {discount.discount_name}
-                              </p>
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={cn(
-                              product.quantity < 10 &&
-                                "font-semibold text-red-600 dark:text-red-400",
-                              product.quantity < 50 &&
-                                product.quantity >= 10 &&
-                                "text-yellow-600 dark:text-yellow-400",
-                              product.quantity >= 50 && "text-foreground",
-                            )}
-                          >
-                            {product.quantity}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <code className="rounded bg-muted px-2 py-1 text-xs text-foreground">
-                            {product.sku}
-                          </code>
-                        </TableCell>
-                        <TableCell>
-                          <span
-                            className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
-                              product.product_status === "Active"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                : product.product_status === "Inactive"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                  : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
-                            )}
-                          >
-                            {product.product_status || "Active"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="w-[140px]">
-                          <div className="flex flex-wrap items-center justify-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleViewClick(product)}
-                              title="View product"
-                              className="h-8 w-8"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleEditClick(product)}
-                              title="Edit product"
-                              className="h-8 w-8"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-
-                            <Button
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleDeleteClick(product)}
-                              title="Delete product"
-                              className="h-8 w-8 hover:border-red-600 hover:text-red-600"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={9}
-                      className="py-12 text-center text-sm text-muted-foreground"
-                    >
-                      <div className="flex flex-col items-center gap-2">
-                        <Package className="h-8 w-8 opacity-50" />
-                        <p>No products found</p>
-                        {search && (
-                          <Button
-                            variant="link"
-                            onClick={() => setSearch("")}
-                            className="text-sm"
-                          >
-                            Clear search
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
+          {listingView === "table" && !isMobile ? (
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border hover:bg-muted/50">
+                    <TableHead className="w-20 text-center text-foreground">
+                      No
+                    </TableHead>
+                    <TableHead className="w-[72px] text-foreground">
+                      Image
+                    </TableHead>
+                    <TableHead className="text-foreground">
+                      Product Name
+                    </TableHead>
+                    <TableHead className="text-foreground">Price</TableHead>
+                    <TableHead className="text-foreground">Discount</TableHead>
+                    <TableHead className="text-foreground">Quantity</TableHead>
+                    <TableHead className="text-foreground">SKU</TableHead>
+                    <TableHead className="text-foreground">Status</TableHead>
+                    <TableHead className="text-center text-foreground">
+                      Actions
+                    </TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+
+                <TableBody>
+                  {paginatedProducts.length > 0 ? (
+                    paginatedProducts.map((product) => {
+                      const discount = product.discount;
+                      const discountedPrice = discount
+                        ? product.sell_price *
+                          (1 - discount.discount_percentage / 100)
+                        : null;
+
+                      return (
+                        <TableRow
+                          key={product.product_id}
+                          className="border-border hover:bg-muted/50"
+                        >
+                          <TableCell className="font-mono text-center text-sm text-foreground">
+                            {product.product_id}
+                          </TableCell>
+                          <TableCell className="w-[72px]">
+                            <div className="h-12 w-12 overflow-hidden rounded-md border border-border bg-muted">
+                              {product.assets &&
+                              product.assets[0]?.asset_url ? (
+                                <img
+                                  src={product.assets[0].asset_url}
+                                  alt={product.product_name}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <Package className="m-3 h-6 w-6 text-muted-foreground" />
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="max-w-[220px]">
+                            <p className="break-words font-medium leading-5 text-foreground">
+                              {product.product_name}
+                            </p>
+                            {product.supplier_sku && (
+                              <p className="mt-1 break-all text-xs text-muted-foreground">
+                                Sup: {product.supplier_sku}
+                              </p>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {discountedPrice ? (
+                              <div>
+                                <span className="text-sm text-muted-foreground line-through">
+                                  ${product.sell_price.toFixed(2)}
+                                </span>
+                                <br />
+                                <span className="font-semibold text-green-600 dark:text-green-400">
+                                  ${discountedPrice.toFixed(2)}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="font-semibold text-foreground">
+                                ${product.sell_price.toFixed(2)}
+                              </span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {discount ? (
+                              <div>
+                                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                                  {discount.discount_percentage}% OFF
+                                </span>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                  {discount.discount_name}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={cn(
+                                product.quantity < 10 &&
+                                  "font-semibold text-red-600 dark:text-red-400",
+                                product.quantity < 50 &&
+                                  product.quantity >= 10 &&
+                                  "text-yellow-600 dark:text-yellow-400",
+                                product.quantity >= 50 && "text-foreground",
+                              )}
+                            >
+                              {product.quantity}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <code className="rounded bg-muted px-2 py-1 text-xs text-foreground">
+                              {product.sku}
+                            </code>
+                          </TableCell>
+                          <TableCell>
+                            <span
+                              className={cn(
+                                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+                                product.product_status === "Active"
+                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                  : product.product_status === "Inactive"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300",
+                              )}
+                            >
+                              {product.product_status || "Active"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="w-[140px]">
+                            <div className="flex flex-wrap items-center justify-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleViewClick(product)}
+                                title="View product"
+                                className="h-8 w-8"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleEditClick(product)}
+                                title="Edit product"
+                                className="h-8 w-8"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleDeleteClick(product)}
+                                title="Delete product"
+                                className="h-8 w-8 hover:border-red-600 hover:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={9}
+                        className="py-12 text-center text-sm text-muted-foreground"
+                      >
+                        <div className="flex flex-col items-center gap-2">
+                          <Package className="h-8 w-8 opacity-50" />
+                          <p>No products found</p>
+                          {search && (
+                            <Button
+                              variant="link"
+                              onClick={() => setSearch("")}
+                              className="text-sm"
+                            >
+                              Clear search
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          ) : listingView === "card-12" ? (
+            <div className="grid grid-cols-1 gap-4">
+              {paginatedProducts.length > 0 ? (
+                paginatedProducts.map((product) =>
+                  renderProductCard(product, false),
+                )
+              ) : (
+                <div className="rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Package className="h-8 w-8 opacity-50" />
+                    <p>No products found</p>
+                    {search && (
+                      <Button
+                        variant="link"
+                        onClick={() => setSearch("")}
+                        className="text-sm"
+                      >
+                        Clear search
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {paginatedProducts.length > 0 ? (
+                paginatedProducts.map((product) =>
+                  renderProductCard(product, true),
+                )
+              ) : (
+                <div className="col-span-full rounded-xl border py-12 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center gap-2">
+                    <Package className="h-8 w-8 opacity-50" />
+                    <p>No products found</p>
+                    {search && (
+                      <Button
+                        variant="link"
+                        onClick={() => setSearch("")}
+                        className="text-sm"
+                      >
+                        Clear search
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {filteredProducts.length > 0 && (
             <div className="mt-4 flex flex-col gap-3 overflow-x-hidden md:flex-row md:items-center md:justify-between">
@@ -3084,7 +2981,7 @@ export default function Products() {
                 products
               </p>
 
-              <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <div className="flex w-full flex-wrap items-center gap-2 md:w-auto md:justify-end">
                 <Button
                   variant="outline"
                   size="sm"
@@ -3093,7 +2990,6 @@ export default function Products() {
                   className="shrink-0"
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
-                  Prev
                 </Button>
 
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
@@ -3138,7 +3034,6 @@ export default function Products() {
                   disabled={currentPage === totalPages}
                   className="shrink-0"
                 >
-                  Next
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>
@@ -3147,7 +3042,6 @@ export default function Products() {
         </CardContent>
       </Card>
 
-      {/* Add Product Modal */}
       <Dialog
         open={isAddOpen}
         onOpenChange={(open) => {
@@ -3171,13 +3065,9 @@ export default function Products() {
             formData={formData}
             categories={categories}
             discounts={discounts}
-            fileInputRef={fileInputRef}
             handleInputChange={handleInputChange}
             handleCategoryChange={handleCategoryChange}
-            handleAddAsset={handleAddAsset}
             handleRemoveAsset={handleRemoveAsset}
-            handleAssetFileChange={handleAssetFileChange}
-            handleAssetTypeChange={handleAssetTypeChange}
             setFormData={setFormData}
             validationErrors={validationErrors}
             showNotification={showAlert}
@@ -3211,7 +3101,6 @@ export default function Products() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Product Modal */}
       <Dialog
         open={isEditOpen}
         onOpenChange={(open) => {
@@ -3239,13 +3128,9 @@ export default function Products() {
             formData={formData}
             categories={categories}
             discounts={discounts}
-            fileInputRef={fileInputRef}
             handleInputChange={handleInputChange}
             handleCategoryChange={handleCategoryChange}
-            handleAddAsset={handleAddAsset}
             handleRemoveAsset={handleRemoveAsset}
-            handleAssetFileChange={handleAssetFileChange}
-            handleAssetTypeChange={handleAssetTypeChange}
             setFormData={setFormData}
             validationErrors={validationErrors}
             showNotification={showAlert}
@@ -3282,7 +3167,6 @@ export default function Products() {
         </DialogContent>
       </Dialog>
 
-      {/* Create New Discount Modal */}
       <Dialog open={isNewDiscountOpen} onOpenChange={setIsNewDiscountOpen}>
         <DialogContent className="w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border-border bg-background p-4 sm:max-w-xl sm:p-6">
           <DialogHeader>
@@ -3404,7 +3288,6 @@ export default function Products() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Modal */}
       <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <DialogContent className="w-[95vw] max-w-[95vw] overflow-x-hidden rounded-2xl border-border bg-background p-4 sm:max-w-lg sm:p-6">
           <DialogHeader>

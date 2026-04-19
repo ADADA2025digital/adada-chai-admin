@@ -273,6 +273,7 @@ export default function Orders() {
       setLoading(true);
       setError(null);
       const response = await api.get("/orders");
+      console.log("API Response:", response.data);
 
       if (response.data.status === "success") {
         setOrders(response.data.data);
@@ -871,7 +872,6 @@ export default function Orders() {
                     disabled={currentPage === 1}
                   >
                     <ChevronLeft className="mr-1 h-4 w-4" />
-                    Prev
                   </Button>
 
                   <div className="flex min-w-0 flex-wrap items-center gap-1">
@@ -919,7 +919,6 @@ export default function Orders() {
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
                   >
-                    Next
                     <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 </div>

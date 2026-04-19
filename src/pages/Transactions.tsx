@@ -287,7 +287,7 @@ export default function Transactions() {
       setError(null);
 
       const response = await api.get("/transactions");
-      console.log("API response:", response);
+      // console.log("API response:", response);
 
       let apiData: any[] = [];
 
@@ -1008,7 +1008,6 @@ export default function Transactions() {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
-                  Prev
                 </Button>
 
                 <div className="flex min-w-0 flex-wrap items-center gap-1">
@@ -1059,7 +1058,6 @@ export default function Transactions() {
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
-                  Next
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>

@@ -1,4 +1,3 @@
-// src/pages/refund.tsx
 import { useEffect, useMemo, useState, useCallback, type ChangeEvent } from "react";
 import { refundData as initialRefundData, type RefundType, type RefundItem } from "../constant/data";
 import { Input } from "@/components/ui/input";
@@ -387,7 +386,6 @@ export default function Refund() {
                   disabled={currentPage === 1}
                 >
                   <ChevronLeft className="mr-1 h-4 w-4" />
-                  Prev
                 </Button>
 
                 {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
@@ -430,7 +428,6 @@ export default function Refund() {
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === totalPages}
                 >
-                  Next
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </Button>
               </div>

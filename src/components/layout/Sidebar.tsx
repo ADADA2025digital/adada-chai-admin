@@ -36,6 +36,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import api from "@/config/axiosConfig";
+import logo from "@/assets/logo.png";
 
 interface SidebarProps {
   onMobileNavigate?: () => void;
@@ -587,14 +588,16 @@ export function Sidebar({ onMobileNavigate }: SidebarProps) {
       >
         {isExpanded ? (
           <div className="flex items-center gap-2">
-            <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" />
+            {/* <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" /> */}
+            <img src={logo} alt="ADADA Chai Admin" className="h-13 w-18" />
 
             <h2 className="text-base font-semibold tracking-tight text-zinc-900 dark:text-white">
               ADADA Chai Admin
             </h2>
           </div>
         ) : (
-          <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" />
+          // <Landmark className="h-6 w-6 text-zinc-700 transition-all duration-300 dark:text-white/90" />
+          <img src={logo} alt="ADADA Chai Admin" className="h-7 w-12" />
         )}
       </div>
 
