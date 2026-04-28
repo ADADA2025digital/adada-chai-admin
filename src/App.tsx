@@ -18,6 +18,7 @@ import Customers from "./pages/Customers";
 import CustomerReviews from "./pages/CustomerReviews";
 import Profile from "./pages/Profile";
 import Report from "./pages/Report";
+import FinancialReport from "./pages/FinancialReport";
 import CategoryPage from "./pages/Category";
 import ContactEnquiries from "./pages/ContactEnquiries";
 
@@ -319,6 +320,17 @@ function AppRoutes() {
           <ProtectedRoute>
             <AppLayout>
               <Report />
+            </AppLayout>
+          </ProtectedRoute>
+        }
+      />
+
+            <Route
+        path="/admin/financial-report"
+        element={
+          <ProtectedRoute>
+            <AppLayout>
+              <FinancialReport />
             </AppLayout>
           </ProtectedRoute>
         }

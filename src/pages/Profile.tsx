@@ -318,7 +318,9 @@ export default function AdminProfile() {
 
           setProfile(userData);
 
-          const savedProfileImage = localStorage.getItem(LOCAL_PROFILE_IMAGE_KEY);
+          const savedProfileImage = localStorage.getItem(
+            LOCAL_PROFILE_IMAGE_KEY,
+          );
           setSelectedImage(savedProfileImage || avatarUrl);
 
           setFormData({
@@ -544,7 +546,11 @@ export default function AdminProfile() {
         if (rawImage && rawImage.startsWith("blob:")) {
           URL.revokeObjectURL(rawImage);
         }
-        if (baseImage && baseImage.startsWith("blob:") && baseImage !== rawImage) {
+        if (
+          baseImage &&
+          baseImage.startsWith("blob:") &&
+          baseImage !== rawImage
+        ) {
           URL.revokeObjectURL(baseImage);
         }
 
@@ -848,10 +854,10 @@ export default function AdminProfile() {
                   Change Password
                 </Button>
 
-<Button
-  onClick={handleLogout}
-  disabled={isLoggingOut}
-  className="
+                <Button
+                  onClick={handleLogout}
+                  disabled={isLoggingOut}
+                  className="
     w-full rounded-2xl py-7 shadow-none
     border border-red-200 bg-red-50 text-red-700
     hover:bg-red-100
@@ -862,19 +868,19 @@ export default function AdminProfile() {
     dark:text-red-400
     dark:hover:from-[#2a0304] dark:hover:to-[#340406]
   "
->
-  {isLoggingOut ? (
-    <>
-      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
-      Signing out...
-    </>
-  ) : (
-    <>
-      <LogOut className="h-4 w-4 shrink-0" />
-      Sign Out
-    </>
-  )}
-</Button>
+                >
+                  {isLoggingOut ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin shrink-0" />
+                      Signing out...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-4 w-4 shrink-0" />
+                      Sign Out
+                    </>
+                  )}
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1061,12 +1067,16 @@ export default function AdminProfile() {
                             <Button
                               className={`w-full ${outlineButtonClass}`}
                               onClick={() => {
-                                localStorage.removeItem(LOCAL_PROFILE_IMAGE_KEY);
+                                localStorage.removeItem(
+                                  LOCAL_PROFILE_IMAGE_KEY,
+                                );
                                 setSelectedImage(profile.avatar);
                                 setBaseImage(profile.avatar);
                                 setRawImage(profile.avatar);
                                 setIsMirrored(false);
-                                setProfileSuccess("Profile picture reset successfully!");
+                                setProfileSuccess(
+                                  "Profile picture reset successfully!",
+                                );
                                 setTimeout(() => setProfileSuccess(""), 3000);
                               }}
                             >

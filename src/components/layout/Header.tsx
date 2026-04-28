@@ -18,6 +18,7 @@ import {
   User2,
   CircleHelp,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { useSidebar } from "@/context/SidebarContext";
@@ -219,9 +220,8 @@ export function Header() {
               onClick={handleSettingsClick}
               className="flex h-12 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-medium text-zinc-900 outline-none data-[highlighted]:bg-zinc-100 data-[highlighted]:text-zinc-900 dark:text-foreground dark:data-[highlighted]:bg-white/10 dark:data-[highlighted]:text-foreground"
             >
-              <span className="flex h-4 w-4 items-center justify-center text-zinc-600 dark:text-muted-foreground">
-                ⚙
-              </span>
+              <Settings className="h-4 w-4 text-zinc-600 dark:text-muted-foreground" />
+
               <span>Settings</span>
             </DropdownMenuItem>
 

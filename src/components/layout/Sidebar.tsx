@@ -141,7 +141,9 @@ const navigation: NavItemType[] = [
   {
     name: "Report",
     icon: FileText,
-    submenu: [{ name: "All Report", href: "/admin/report", icon: FileText }],
+    submenu: [{ name: "All Report", href: "/admin/report", icon: FileText },
+      { name: "Financial Report", href: "/admin/financial-report", icon: FileText },
+    ],
   },
 ];
 
