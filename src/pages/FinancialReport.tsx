@@ -588,139 +588,194 @@ export default function FinancialReport() {
     );
   };
 
-  const exportToPdf = (type: "pl" | "balance") => {
-    const doc = new jsPDF();
-    doc.setFontSize(16);
-    doc.text(companyName, 14, 18);
-    doc.setFontSize(12);
-    doc.text(
-      type === "pl" ? "Profit and Loss Statement" : "Balance Sheet",
-      14,
-      28,
-    );
-    doc.text(
-      type === "pl"
-        ? `Period: ${reportPeriod}`
-        : `As At: ${formData.end_date || "Date"}`,
-      14,
-      36,
-    );
+const exportToPdf = (type: "pl" | "balance") => {
+  const doc = new jsPDF("p", "mm", "a4");
 
-    const body =
-      type === "pl"
-        ? [
-            ["Income by sales", formatCurrency(plData.incomeBySales)],
-            [
-              "Vending machine rental advance",
-              formatCurrency(plData.vendingMachineRentalAdvance),
-            ],
-            [
-              "Vending machine rental charge",
-              formatCurrency(plData.vendingMachineRentalCharge),
-            ],
-            ...plData.incomeExtraItems.map((item) => [
-              item.label || "Other Income Item",
-              formatCurrency(item.amount),
-            ]),
-            ["Total Income", formatCurrency(plSummary.totalIncome)],
-            ["Closing stock", formatCurrency(plData.closingStock)],
-            ["Stock purchases", formatCurrency(plData.stockPurchases)],
-            ...plData.costOfSalesExtraItems.map((item) => [
-              item.label || "Other Cost of Sales Item",
-              formatCurrency(item.amount),
-            ]),
-            ["Total Cost of Sales", formatCurrency(plSummary.totalCostOfSales)],
-            ["Gross Profit", formatCurrency(plSummary.grossProfit)],
-            ["Advertising", formatCurrency(plData.advertising)],
-            ["Bank charges", formatCurrency(plData.bankCharges)],
-            ["Cleaning", formatCurrency(plData.cleaning)],
-            [
-              "Computer running costs",
-              formatCurrency(plData.computerRunningCosts),
-            ],
-            [
-              "Damages and compensation",
-              formatCurrency(plData.damagesAndCompensation),
-            ],
-            ["Insurance", formatCurrency(plData.insurance)],
-            [
-              "Legal and professional fees",
-              formatCurrency(plData.legalAndProfessionalFees),
-            ],
-            [
-              "Post Office Commission",
-              formatCurrency(plData.postOfficeCommission),
-            ],
-            [
-              "Printing, postage and stationery",
-              formatCurrency(plData.printingPostageAndStationery),
-            ],
-            ["Telephone", formatCurrency(plData.telephone)],
-            [
-              "Unapplied Cash Bill Payment Expense",
-              formatCurrency(plData.unappliedCashBillPaymentExpense),
-            ],
-            ["Electricity", formatCurrency(plData.electricity)],
-            ...plData.expensesExtraItems.map((item) => [
-              item.label || "Other Expense Item",
-              formatCurrency(item.amount),
-            ]),
-            ["Total Expenses", formatCurrency(plSummary.totalExpenses)],
-            [
-              "Net Operating Income",
-              formatCurrency(plSummary.netOperatingIncome),
-            ],
-            [
-              "Bank interest - received",
-              formatCurrency(plData.bankInterestReceived),
-            ],
-            ["Daily Facility Fee", formatCurrency(plData.dailyFacilityFee)],
-            ["Other finance income", formatCurrency(plData.otherFinanceIncome)],
-            ["Other rent income", formatCurrency(plData.otherRentIncome)],
-            ["Total Other Income", formatCurrency(plSummary.totalOtherIncome)],
-            ["Dividend", formatCurrency(plData.dividend)],
-            [
-              "Total Other Expenses",
-              formatCurrency(plSummary.totalOtherExpenses),
-            ],
-            ["Net Other Income", formatCurrency(plSummary.netOtherIncome)],
-            ["Net Income", formatCurrency(plSummary.netIncome)],
-          ]
-        : [
-            ["Cash", formatCurrency(balanceData.cash)],
-            ["Bank", formatCurrency(balanceData.bank)],
-            [
-              "Accounts Receivable",
-              formatCurrency(balanceData.accountsReceivable),
-            ],
-            ["Inventory", formatCurrency(balanceData.inventory)],
-            ["Fixed Assets", formatCurrency(balanceData.fixedAssets)],
-            ["Total Assets", formatCurrency(balanceSummary.totalAssets)],
-            ["Accounts Payable", formatCurrency(balanceData.accountsPayable)],
-            ["Loans", formatCurrency(balanceData.loans)],
-            ["Taxes Payable", formatCurrency(balanceData.taxesPayable)],
-            [
-              "Total Liabilities",
-              formatCurrency(balanceSummary.totalLiabilities),
-            ],
-            ["Owner Capital", formatCurrency(balanceData.ownerCapital)],
-            ["Retained Earnings", formatCurrency(balanceData.retainedEarnings)],
-            ["Total Equity", formatCurrency(balanceSummary.totalEquity)],
-            [
-              "Total Liabilities + Equity",
-              formatCurrency(balanceSummary.liabilitiesAndEquity),
-            ],
-            ["Difference", formatCurrency(balanceSummary.difference)],
-          ];
+  const title = type === "pl" ? "Profit and Loss Statement" : "Balance Sheet";
 
-    autoTable(doc, {
-      startY: 46,
-      head: [["Particular", "Amount"]],
-      body,
-    });
+  const subtitle =
+    type === "pl"
+      ? `${formData.start_date || "Start Date"} - ${
+          formData.end_date || "End Date"
+        }`
+      : `As at ${formData.end_date || "Date"}`;
 
-    doc.save(`${type === "pl" ? "PL_Statement" : "Balance_Sheet"}.pdf`);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text(title, 105, 16, { align: "center" });
+
+  doc.setFontSize(12);
+  doc.text(companyName, 105, 24, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(subtitle, 105, 31, { align: "center" });
+
+  const rows: any[] = [];
+
+  const sectionRow = (title: string) => {
+    rows.push([
+      {
+        content: title,
+        colSpan: 2,
+        styles: {
+          fontStyle: "bold",
+          fillColor: [230, 240, 255],
+          textColor: [20, 40, 80],
+        },
+      },
+    ]);
   };
+
+  const normalRow = (label: string, amount: number) => {
+    rows.push([label, formatCurrency(amount)]);
+  };
+
+  const totalRow = (label: string, amount: number) => {
+    rows.push([
+      {
+        content: label,
+        styles: {
+          fontStyle: "bold",
+          fillColor: [245, 247, 250],
+          textColor: [0, 0, 0],
+        },
+      },
+      {
+        content: formatCurrency(amount),
+        styles: {
+          fontStyle: "bold",
+          halign: "right",
+          fillColor: [245, 247, 250],
+          textColor: [0, 0, 0],
+        },
+      },
+    ]);
+  };
+
+  if (type === "pl") {
+    sectionRow("Income");
+    normalRow("Income by sales", plData.incomeBySales);
+    normalRow(
+      "Vending machine rental advance",
+      plData.vendingMachineRentalAdvance,
+    );
+    normalRow(
+      "Vending machine rental charge",
+      plData.vendingMachineRentalCharge,
+    );
+
+    plData.incomeExtraItems.forEach((item) =>
+      normalRow(item.label || "Other Income Item", item.amount),
+    );
+
+    totalRow("Total for Income", plSummary.totalIncome);
+
+    sectionRow("Cost of Sales");
+    normalRow("Closing stock", plData.closingStock);
+    normalRow("Stock purchases", plData.stockPurchases);
+
+    plData.costOfSalesExtraItems.forEach((item) =>
+      normalRow(item.label || "Other Cost of Sales Item", item.amount),
+    );
+
+    totalRow("Total for Cost of Sales", plSummary.totalCostOfSales);
+    totalRow("Gross Profit", plSummary.grossProfit);
+
+    sectionRow("Expenses");
+    normalRow("Advertising", plData.advertising);
+    normalRow("Bank charges", plData.bankCharges);
+    normalRow("Cleaning", plData.cleaning);
+    normalRow("Computer running costs", plData.computerRunningCosts);
+    normalRow("Damages and compensation", plData.damagesAndCompensation);
+    normalRow("Insurance", plData.insurance);
+    normalRow("Legal and professional fees", plData.legalAndProfessionalFees);
+    normalRow("Post Office Commission", plData.postOfficeCommission);
+    normalRow(
+      "Printing, postage and stationery",
+      plData.printingPostageAndStationery,
+    );
+    normalRow("Telephone", plData.telephone);
+    normalRow(
+      "Unapplied Cash Bill Payment Expense",
+      plData.unappliedCashBillPaymentExpense,
+    );
+    normalRow("Electricity", plData.electricity);
+
+    plData.expensesExtraItems.forEach((item) =>
+      normalRow(item.label || "Other Expense Item", item.amount),
+    );
+
+    totalRow("Total for Expenses", plSummary.totalExpenses);
+    totalRow("Net Operating Income", plSummary.netOperatingIncome);
+
+    sectionRow("Other Income");
+    normalRow("Bank interest - received", plData.bankInterestReceived);
+    normalRow("Daily Facility Fee", plData.dailyFacilityFee);
+    normalRow("Other finance income", plData.otherFinanceIncome);
+    normalRow("Other rent income", plData.otherRentIncome);
+    totalRow("Total for Other Income", plSummary.totalOtherIncome);
+
+    sectionRow("Other Expenses");
+    normalRow("Dividend", plData.dividend);
+    totalRow("Total for Other Expenses", plSummary.totalOtherExpenses);
+    totalRow("Net Other Income", plSummary.netOtherIncome);
+    totalRow("Net Income", plSummary.netIncome);
+  }
+
+  if (type === "balance") {
+    sectionRow("Assets");
+    normalRow("Cash", balanceData.cash);
+    normalRow("Bank", balanceData.bank);
+    normalRow("Accounts Receivable", balanceData.accountsReceivable);
+    normalRow("Inventory", balanceData.inventory);
+    normalRow("Fixed Assets", balanceData.fixedAssets);
+    totalRow("Total Assets", balanceSummary.totalAssets);
+
+    sectionRow("Liabilities");
+    normalRow("Accounts Payable", balanceData.accountsPayable);
+    normalRow("Loans", balanceData.loans);
+    normalRow("Taxes Payable", balanceData.taxesPayable);
+    totalRow("Total Liabilities", balanceSummary.totalLiabilities);
+
+    sectionRow("Equity");
+    normalRow("Owner Capital", balanceData.ownerCapital);
+    normalRow("Retained Earnings", balanceData.retainedEarnings);
+    totalRow("Total Equity", balanceSummary.totalEquity);
+    totalRow(
+      "Total Liabilities + Equity",
+      balanceSummary.liabilitiesAndEquity,
+    );
+    totalRow("Difference", balanceSummary.difference);
+  }
+
+  autoTable(doc, {
+    startY: 38,
+    head: [["Particular", "Total"]],
+    body: rows,
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 9,
+      cellPadding: 2.5,
+      lineColor: [220, 220, 220],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [30, 41, 59],
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      halign: "center",
+    },
+    columnStyles: {
+      0: { cellWidth: 130 },
+      1: { cellWidth: 45, halign: "right" },
+    },
+    margin: { left: 17, right: 17 },
+  });
+
+  doc.save(type === "pl" ? "PL_Statement.pdf" : "Balance_Sheet.pdf");
+};
 
   const NumberField = ({
     label,
