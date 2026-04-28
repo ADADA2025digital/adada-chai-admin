@@ -4,12 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -36,7 +31,8 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import ProfileAnimatedTabs from "@/components/ui/profile-animated-tabs";
@@ -165,7 +161,7 @@ export default function FinancialReport() {
 
   const [plData, setPlData] = useState<PLData>(emptyPLData);
   const [balanceData, setBalanceData] = useState<BalanceSheetData>(
-    emptyBalanceSheetData
+    emptyBalanceSheetData,
   );
 
   const transactionCategories = [
@@ -191,7 +187,7 @@ export default function FinancialReport() {
   ];
 
   const neutralCardClass =
-    "rounded-[28px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0b0b0d]";
+    "rounded-[15px] border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-[#0b0b0d]";
 
   const outlineButtonClass =
     "border border-zinc-300 bg-transparent text-zinc-900 shadow-none transition-colors hover:bg-zinc-100/60 dark:border-white/20 dark:bg-transparent dark:text-white dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed";
@@ -209,19 +205,25 @@ export default function FinancialReport() {
       const { name, value } = e.target;
       setFormData((prev) => ({ ...prev, [name]: value }));
     },
-    []
+    [],
   );
 
   const handlePLChange = (field: keyof PLData, value: string) => {
     setPlData((prev) => ({ ...prev, [field]: Number(value) || 0 }));
   };
 
-  const handleBalanceChange = (field: keyof BalanceSheetData, value: string) => {
+  const handleBalanceChange = (
+    field: keyof BalanceSheetData,
+    value: string,
+  ) => {
     setBalanceData((prev) => ({ ...prev, [field]: Number(value) || 0 }));
   };
 
   const addPLExtraItem = (
-    section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems"
+    section:
+      | "incomeExtraItems"
+      | "costOfSalesExtraItems"
+      | "expensesExtraItems",
   ) => {
     setPlData((prev) => ({
       ...prev,
@@ -233,24 +235,33 @@ export default function FinancialReport() {
   };
 
   const updatePLExtraItem = (
-    section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems",
+    section:
+      | "incomeExtraItems"
+      | "costOfSalesExtraItems"
+      | "expensesExtraItems",
     id: string,
     field: "label" | "amount",
-    value: string
+    value: string,
   ) => {
     setPlData((prev) => ({
       ...prev,
       [section]: prev[section].map((item) =>
         item.id === id
-          ? { ...item, [field]: field === "amount" ? Number(value) || 0 : value }
-          : item
+          ? {
+              ...item,
+              [field]: field === "amount" ? Number(value) || 0 : value,
+            }
+          : item,
       ),
     }));
   };
 
   const removePLExtraItem = (
-    section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems",
-    id: string
+    section:
+      | "incomeExtraItems"
+      | "costOfSalesExtraItems"
+      | "expensesExtraItems",
+    id: string,
   ) => {
     setPlData((prev) => ({
       ...prev,
@@ -271,7 +282,7 @@ export default function FinancialReport() {
   const plSummary = useMemo(() => {
     const extraIncome = plData.incomeExtraItems.reduce(
       (sum, item) => sum + Number(item.amount || 0),
-      0
+      0,
     );
     const totalIncome =
       plData.incomeBySales +
@@ -281,7 +292,7 @@ export default function FinancialReport() {
 
     const extraCostOfSales = plData.costOfSalesExtraItems.reduce(
       (sum, item) => sum + Number(item.amount || 0),
-      0
+      0,
     );
     const totalCostOfSales =
       plData.closingStock + plData.stockPurchases + extraCostOfSales;
@@ -290,7 +301,7 @@ export default function FinancialReport() {
 
     const extraExpenses = plData.expensesExtraItems.reduce(
       (sum, item) => sum + Number(item.amount || 0),
-      0
+      0,
     );
     const totalExpenses =
       plData.advertising +
@@ -341,108 +352,239 @@ export default function FinancialReport() {
       balanceData.fixedAssets;
 
     const totalLiabilities =
-      balanceData.accountsPayable + balanceData.loans + balanceData.taxesPayable;
+      balanceData.accountsPayable +
+      balanceData.loans +
+      balanceData.taxesPayable;
 
     const totalEquity = balanceData.ownerCapital + balanceData.retainedEarnings;
     const liabilitiesAndEquity = totalLiabilities + totalEquity;
     const difference = totalAssets - liabilitiesAndEquity;
 
-    return { totalAssets, totalLiabilities, totalEquity, liabilitiesAndEquity, difference };
+    return {
+      totalAssets,
+      totalLiabilities,
+      totalEquity,
+      liabilitiesAndEquity,
+      difference,
+    };
   }, [balanceData]);
 
   const reportPeriod = `${formData.start_date || "Start Date"} to ${
     formData.end_date || "End Date"
   }`;
 
-  const exportToExcel = (type: "pl" | "balance") => {
-    const rows =
-      type === "pl"
-        ? [
-            [companyName],
-            ["Profit and Loss Statement"],
-            ["Period", reportPeriod],
-            [],
-            ["Income", "Amount"],
-            ["Income by sales", plData.incomeBySales],
-            ["Vending machine rental advance", plData.vendingMachineRentalAdvance],
-            ["Vending machine rental charge", plData.vendingMachineRentalCharge],
-            ...plData.incomeExtraItems.map((item) => [item.label || "Other Income Item", item.amount]),
-            ["Total Income", plSummary.totalIncome],
-            [],
-            ["Cost of Sales", "Amount"],
-            ["Closing stock", plData.closingStock],
-            ["Stock purchases", plData.stockPurchases],
-            ...plData.costOfSalesExtraItems.map((item) => [item.label || "Other Cost of Sales Item", item.amount]),
-            ["Total Cost of Sales", plSummary.totalCostOfSales],
-            ["Gross Profit", plSummary.grossProfit],
-            [],
-            ["Expenses", "Amount"],
-            ["Advertising", plData.advertising],
-            ["Bank charges", plData.bankCharges],
-            ["Cleaning", plData.cleaning],
-            ["Computer running costs", plData.computerRunningCosts],
-            ["Damages and compensation", plData.damagesAndCompensation],
-            ["Insurance", plData.insurance],
-            ["Legal and professional fees", plData.legalAndProfessionalFees],
-            ["Post Office Commission", plData.postOfficeCommission],
-            ["Printing, postage and stationery", plData.printingPostageAndStationery],
-            ["Telephone", plData.telephone],
-            ["Unapplied Cash Bill Payment Expense", plData.unappliedCashBillPaymentExpense],
-            ["Electricity", plData.electricity],
-            ...plData.expensesExtraItems.map((item) => [item.label || "Other Expense Item", item.amount]),
-            ["Total Expenses", plSummary.totalExpenses],
-            ["Net Operating Income", plSummary.netOperatingIncome],
-            [],
-            ["Other Income", "Amount"],
-            ["Bank interest - received", plData.bankInterestReceived],
-            ["Daily Facility Fee", plData.dailyFacilityFee],
-            ["Other finance income", plData.otherFinanceIncome],
-            ["Other rent income", plData.otherRentIncome],
-            ["Total Other Income", plSummary.totalOtherIncome],
-            [],
-            ["Other Expenses", "Amount"],
-            ["Dividend", plData.dividend],
-            ["Total Other Expenses", plSummary.totalOtherExpenses],
-            ["Net Other Income", plSummary.netOtherIncome],
-            ["Net Income", plSummary.netIncome],
-          ]
-        : [
-            [companyName],
-            ["Balance Sheet"],
-            ["As At", formData.end_date || "Date"],
-            [],
-            ["Assets", "Amount"],
-            ["Cash", balanceData.cash],
-            ["Bank", balanceData.bank],
-            ["Accounts Receivable", balanceData.accountsReceivable],
-            ["Inventory", balanceData.inventory],
-            ["Fixed Assets", balanceData.fixedAssets],
-            ["Total Assets", balanceSummary.totalAssets],
-            [],
-            ["Liabilities", "Amount"],
-            ["Accounts Payable", balanceData.accountsPayable],
-            ["Loans", balanceData.loans],
-            ["Taxes Payable", balanceData.taxesPayable],
-            ["Total Liabilities", balanceSummary.totalLiabilities],
-            [],
-            ["Equity", "Amount"],
-            ["Owner Capital", balanceData.ownerCapital],
-            ["Retained Earnings", balanceData.retainedEarnings],
-            ["Total Equity", balanceSummary.totalEquity],
-            ["Total Liabilities + Equity", balanceSummary.liabilitiesAndEquity],
-            ["Difference", balanceSummary.difference],
-          ];
-
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(
-      workbook,
-      worksheet,
-      type === "pl" ? "PL Statement" : "Balance Sheet"
+  const exportToExcel = async (type: "pl" | "balance") => {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet(
+      type === "pl" ? "Profit and Loss" : "Balance Sheet",
     );
-    XLSX.writeFile(
-      workbook,
-      `${type === "pl" ? "PL_Statement" : "Balance_Sheet"}.xlsx`
+
+    sheet.columns = [{ width: 48 }, { width: 48 }, { width: 20 }, { width: 6 }];
+
+    const currencyFormat = '"$"#,##0.00;-"$"#,##0.00';
+
+    const centerTitle = (rowNumber: number, text: string, size = 14) => {
+      sheet.mergeCells(`A${rowNumber}:C${rowNumber}`);
+      const cell = sheet.getCell(`A${rowNumber}`);
+      cell.value = text;
+      cell.font = { bold: true, size };
+      cell.alignment = { horizontal: "center" };
+    };
+
+    const sectionRow = (rowNumber: number, title: string) => {
+      const row = sheet.getRow(rowNumber);
+      row.getCell(1).value = title;
+      row.getCell(1).font = { bold: true };
+    };
+
+    const normalRow = (
+      rowNumber: number,
+      label: string,
+      amount: number,
+      indent = 1,
+    ) => {
+      const row = sheet.getRow(rowNumber);
+      row.getCell(1).value = label;
+      row.getCell(1).alignment = { indent };
+      row.getCell(2).value = amount;
+      row.getCell(2).numFmt = currencyFormat;
+      row.getCell(2).alignment = { horizontal: "right" };
+    };
+
+    const totalRow = (rowNumber: number, label: string, amount: number) => {
+      const row = sheet.getRow(rowNumber);
+      row.getCell(1).value = label;
+      row.getCell(2).value = amount;
+
+      row.getCell(1).font = { bold: true };
+      row.getCell(2).font = { bold: true };
+      row.getCell(2).numFmt = currencyFormat;
+      row.getCell(2).alignment = { horizontal: "right" };
+
+      row.getCell(2).border = {
+        top: { style: "thin" },
+        bottom: { style: "thin" },
+      };
+    };
+
+    centerTitle(
+      1,
+      type === "pl" ? "Profit and Loss Statement" : "Balance Sheet",
+      16,
+    );
+    centerTitle(2, companyName, 12);
+    centerTitle(
+      3,
+      type === "pl"
+        ? `${formData.start_date || "Start Date"} - ${formData.end_date || "End Date"}`
+        : `As at ${formData.end_date || "Date"}`,
+      11,
+    );
+
+    let r = 5;
+
+    sheet.getCell(`B${r}`).value = "Total";
+    sheet.getCell(`B${r}`).font = { bold: true };
+    sheet.getCell(`B${r}`).alignment = { horizontal: "center" };
+    sheet.getCell(`B${r}`).border = {
+      top: { style: "thin" },
+      bottom: { style: "thin" },
+    };
+
+    r++;
+
+    if (type === "pl") {
+      sectionRow(r++, "Income");
+
+      normalRow(r++, "Income by sales", plData.incomeBySales);
+      normalRow(
+        r++,
+        "Vending machine rental advance",
+        plData.vendingMachineRentalAdvance,
+      );
+      normalRow(
+        r++,
+        "Vending machine rental charge",
+        plData.vendingMachineRentalCharge,
+      );
+
+      plData.incomeExtraItems.forEach((item) => {
+        normalRow(r++, item.label || "Other Income Item", item.amount);
+      });
+
+      totalRow(r++, "Total for Income", plSummary.totalIncome);
+      r++;
+
+      sectionRow(r++, "Cost of Sales");
+      normalRow(r++, "Closing stock", plData.closingStock);
+      normalRow(r++, "Stock purchases", plData.stockPurchases);
+
+      plData.costOfSalesExtraItems.forEach((item) => {
+        normalRow(r++, item.label || "Other Cost of Sales Item", item.amount);
+      });
+
+      totalRow(r++, "Total for Cost of Sales", plSummary.totalCostOfSales);
+      totalRow(r++, "Gross Profit", plSummary.grossProfit);
+      r++;
+
+      sectionRow(r++, "Expenses");
+
+      normalRow(r++, "Advertising", plData.advertising);
+      normalRow(r++, "Bank charges", plData.bankCharges);
+      normalRow(r++, "Cleaning", plData.cleaning);
+      normalRow(r++, "Computer running costs", plData.computerRunningCosts);
+      normalRow(r++, "Damages and compensation", plData.damagesAndCompensation);
+      normalRow(r++, "Insurance", plData.insurance);
+      normalRow(
+        r++,
+        "Legal and professional fees",
+        plData.legalAndProfessionalFees,
+      );
+      normalRow(r++, "Post Office Commission", plData.postOfficeCommission);
+      normalRow(
+        r++,
+        "Printing, postage and stationery",
+        plData.printingPostageAndStationery,
+      );
+      normalRow(r++, "Telephone", plData.telephone);
+      normalRow(
+        r++,
+        "Unapplied Cash Bill Payment Expense",
+        plData.unappliedCashBillPaymentExpense,
+      );
+      normalRow(r++, "Electricity", plData.electricity);
+
+      plData.expensesExtraItems.forEach((item) => {
+        normalRow(r++, item.label || "Other Expense Item", item.amount);
+      });
+
+      totalRow(r++, "Total for Expenses", plSummary.totalExpenses);
+      totalRow(r++, "Net Operating Income", plSummary.netOperatingIncome);
+      r++;
+
+      sectionRow(r++, "Other Income");
+      normalRow(r++, "Bank interest - received", plData.bankInterestReceived);
+      normalRow(r++, "Daily Facility Fee", plData.dailyFacilityFee);
+      normalRow(r++, "Other finance income", plData.otherFinanceIncome);
+      normalRow(r++, "Other rent income", plData.otherRentIncome);
+      totalRow(r++, "Total for Other Income", plSummary.totalOtherIncome);
+      r++;
+
+      sectionRow(r++, "Other Expenses");
+      normalRow(r++, "Dividend", plData.dividend);
+      totalRow(r++, "Total for Other Expenses", plSummary.totalOtherExpenses);
+      totalRow(r++, "Net Other Income", plSummary.netOtherIncome);
+      totalRow(r++, "Net Income", plSummary.netIncome);
+    }
+
+    if (type === "balance") {
+      sectionRow(r++, "Assets");
+      normalRow(r++, "Cash", balanceData.cash);
+      normalRow(r++, "Bank", balanceData.bank);
+      normalRow(r++, "Accounts Receivable", balanceData.accountsReceivable);
+      normalRow(r++, "Inventory", balanceData.inventory);
+      normalRow(r++, "Fixed Assets", balanceData.fixedAssets);
+      totalRow(r++, "Total Assets", balanceSummary.totalAssets);
+      r++;
+
+      sectionRow(r++, "Liabilities");
+      normalRow(r++, "Accounts Payable", balanceData.accountsPayable);
+      normalRow(r++, "Loans", balanceData.loans);
+      normalRow(r++, "Taxes Payable", balanceData.taxesPayable);
+      totalRow(r++, "Total Liabilities", balanceSummary.totalLiabilities);
+      r++;
+
+      sectionRow(r++, "Equity");
+      normalRow(r++, "Owner Capital", balanceData.ownerCapital);
+      normalRow(r++, "Retained Earnings", balanceData.retainedEarnings);
+      totalRow(r++, "Total Equity", balanceSummary.totalEquity);
+      totalRow(
+        r++,
+        "Total Liabilities + Equity",
+        balanceSummary.liabilitiesAndEquity,
+      );
+      totalRow(r++, "Difference", balanceSummary.difference);
+    }
+
+    sheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        cell.font = {
+          name: "Arial",
+          size: cell.font?.size || 10,
+          bold: cell.font?.bold || false,
+        };
+        cell.alignment = {
+          vertical: "middle",
+          ...cell.alignment,
+        };
+      });
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    saveAs(
+      new Blob([buffer]),
+      type === "pl" ? "PL_Statement.xlsx" : "Balance_Sheet.xlsx",
     );
   };
 
@@ -451,62 +593,123 @@ export default function FinancialReport() {
     doc.setFontSize(16);
     doc.text(companyName, 14, 18);
     doc.setFontSize(12);
-    doc.text(type === "pl" ? "Profit and Loss Statement" : "Balance Sheet", 14, 28);
-    doc.text(type === "pl" ? `Period: ${reportPeriod}` : `As At: ${formData.end_date || "Date"}`, 14, 36);
+    doc.text(
+      type === "pl" ? "Profit and Loss Statement" : "Balance Sheet",
+      14,
+      28,
+    );
+    doc.text(
+      type === "pl"
+        ? `Period: ${reportPeriod}`
+        : `As At: ${formData.end_date || "Date"}`,
+      14,
+      36,
+    );
 
     const body =
       type === "pl"
         ? [
             ["Income by sales", formatCurrency(plData.incomeBySales)],
-            ["Vending machine rental advance", formatCurrency(plData.vendingMachineRentalAdvance)],
-            ["Vending machine rental charge", formatCurrency(plData.vendingMachineRentalCharge)],
-            ...plData.incomeExtraItems.map((item) => [item.label || "Other Income Item", formatCurrency(item.amount)]),
+            [
+              "Vending machine rental advance",
+              formatCurrency(plData.vendingMachineRentalAdvance),
+            ],
+            [
+              "Vending machine rental charge",
+              formatCurrency(plData.vendingMachineRentalCharge),
+            ],
+            ...plData.incomeExtraItems.map((item) => [
+              item.label || "Other Income Item",
+              formatCurrency(item.amount),
+            ]),
             ["Total Income", formatCurrency(plSummary.totalIncome)],
             ["Closing stock", formatCurrency(plData.closingStock)],
             ["Stock purchases", formatCurrency(plData.stockPurchases)],
-            ...plData.costOfSalesExtraItems.map((item) => [item.label || "Other Cost of Sales Item", formatCurrency(item.amount)]),
+            ...plData.costOfSalesExtraItems.map((item) => [
+              item.label || "Other Cost of Sales Item",
+              formatCurrency(item.amount),
+            ]),
             ["Total Cost of Sales", formatCurrency(plSummary.totalCostOfSales)],
             ["Gross Profit", formatCurrency(plSummary.grossProfit)],
             ["Advertising", formatCurrency(plData.advertising)],
             ["Bank charges", formatCurrency(plData.bankCharges)],
             ["Cleaning", formatCurrency(plData.cleaning)],
-            ["Computer running costs", formatCurrency(plData.computerRunningCosts)],
-            ["Damages and compensation", formatCurrency(plData.damagesAndCompensation)],
+            [
+              "Computer running costs",
+              formatCurrency(plData.computerRunningCosts),
+            ],
+            [
+              "Damages and compensation",
+              formatCurrency(plData.damagesAndCompensation),
+            ],
             ["Insurance", formatCurrency(plData.insurance)],
-            ["Legal and professional fees", formatCurrency(plData.legalAndProfessionalFees)],
-            ["Post Office Commission", formatCurrency(plData.postOfficeCommission)],
-            ["Printing, postage and stationery", formatCurrency(plData.printingPostageAndStationery)],
+            [
+              "Legal and professional fees",
+              formatCurrency(plData.legalAndProfessionalFees),
+            ],
+            [
+              "Post Office Commission",
+              formatCurrency(plData.postOfficeCommission),
+            ],
+            [
+              "Printing, postage and stationery",
+              formatCurrency(plData.printingPostageAndStationery),
+            ],
             ["Telephone", formatCurrency(plData.telephone)],
-            ["Unapplied Cash Bill Payment Expense", formatCurrency(plData.unappliedCashBillPaymentExpense)],
+            [
+              "Unapplied Cash Bill Payment Expense",
+              formatCurrency(plData.unappliedCashBillPaymentExpense),
+            ],
             ["Electricity", formatCurrency(plData.electricity)],
-            ...plData.expensesExtraItems.map((item) => [item.label || "Other Expense Item", formatCurrency(item.amount)]),
+            ...plData.expensesExtraItems.map((item) => [
+              item.label || "Other Expense Item",
+              formatCurrency(item.amount),
+            ]),
             ["Total Expenses", formatCurrency(plSummary.totalExpenses)],
-            ["Net Operating Income", formatCurrency(plSummary.netOperatingIncome)],
-            ["Bank interest - received", formatCurrency(plData.bankInterestReceived)],
+            [
+              "Net Operating Income",
+              formatCurrency(plSummary.netOperatingIncome),
+            ],
+            [
+              "Bank interest - received",
+              formatCurrency(plData.bankInterestReceived),
+            ],
             ["Daily Facility Fee", formatCurrency(plData.dailyFacilityFee)],
             ["Other finance income", formatCurrency(plData.otherFinanceIncome)],
             ["Other rent income", formatCurrency(plData.otherRentIncome)],
             ["Total Other Income", formatCurrency(plSummary.totalOtherIncome)],
             ["Dividend", formatCurrency(plData.dividend)],
-            ["Total Other Expenses", formatCurrency(plSummary.totalOtherExpenses)],
+            [
+              "Total Other Expenses",
+              formatCurrency(plSummary.totalOtherExpenses),
+            ],
             ["Net Other Income", formatCurrency(plSummary.netOtherIncome)],
             ["Net Income", formatCurrency(plSummary.netIncome)],
           ]
         : [
             ["Cash", formatCurrency(balanceData.cash)],
             ["Bank", formatCurrency(balanceData.bank)],
-            ["Accounts Receivable", formatCurrency(balanceData.accountsReceivable)],
+            [
+              "Accounts Receivable",
+              formatCurrency(balanceData.accountsReceivable),
+            ],
             ["Inventory", formatCurrency(balanceData.inventory)],
             ["Fixed Assets", formatCurrency(balanceData.fixedAssets)],
             ["Total Assets", formatCurrency(balanceSummary.totalAssets)],
             ["Accounts Payable", formatCurrency(balanceData.accountsPayable)],
             ["Loans", formatCurrency(balanceData.loans)],
             ["Taxes Payable", formatCurrency(balanceData.taxesPayable)],
-            ["Total Liabilities", formatCurrency(balanceSummary.totalLiabilities)],
+            [
+              "Total Liabilities",
+              formatCurrency(balanceSummary.totalLiabilities),
+            ],
             ["Owner Capital", formatCurrency(balanceData.ownerCapital)],
             ["Retained Earnings", formatCurrency(balanceData.retainedEarnings)],
             ["Total Equity", formatCurrency(balanceSummary.totalEquity)],
-            ["Total Liabilities + Equity", formatCurrency(balanceSummary.liabilitiesAndEquity)],
+            [
+              "Total Liabilities + Equity",
+              formatCurrency(balanceSummary.liabilitiesAndEquity),
+            ],
             ["Difference", formatCurrency(balanceSummary.difference)],
           ];
 
@@ -548,32 +751,45 @@ export default function FinancialReport() {
             Financial Report
           </h1>
           <p className="max-w-xl text-sm text-zinc-600 dark:text-zinc-400">
-            Generate Profit & Loss Statement and Balance Sheet with Excel/PDF export
+            Generate Profit & Loss Statement and Balance Sheet with Excel/PDF
+            export
           </p>
         </div>
       </div>
 
       <Separator className="bg-zinc-200 dark:bg-white/10" />
 
-      <Card className={neutralCardClass}>
-        <CardContent className="grid gap-4 pt-6 sm:grid-cols-3">
+      <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700">
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          {/* Company Name */}
           <div className="space-y-2 sm:col-span-1">
-            <Label className="text-zinc-700 dark:text-zinc-300">Company Name</Label>
+            <Label className="text-zinc-700 dark:text-zinc-300">
+              Company Name
+            </Label>
             <Input
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
               placeholder="Enter company name"
+              className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border-zinc-300 dark:border-zinc-600"
             />
           </div>
+
+          {/* Start Date */}
           <div className="space-y-2">
-            <Label className="text-zinc-700 dark:text-zinc-300">Start Date</Label>
+            <Label className="text-zinc-700 dark:text-zinc-300">
+              Start Date
+            </Label>
             <Input
               type="date"
               name="start_date"
               value={formData.start_date}
               onChange={handleInputChange}
+              className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border-zinc-300 dark:border-zinc-600 
+                   [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
+
+          {/* End Date */}
           <div className="space-y-2">
             <Label className="text-zinc-700 dark:text-zinc-300">End Date</Label>
             <Input
@@ -581,6 +797,8 @@ export default function FinancialReport() {
               name="end_date"
               value={formData.end_date}
               onChange={handleInputChange}
+              className="bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white border-zinc-300 dark:border-zinc-600 
+                   [color-scheme:light] dark:[color-scheme:dark]"
             />
           </div>
         </CardContent>
@@ -605,13 +823,24 @@ export default function FinancialReport() {
 
         <TabsContent value="pl" className="mt-0 space-y-4">
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Button onClick={() => exportToExcel("pl")} className={outlineButtonClass}>
+            <Button
+              onClick={() => exportToExcel("pl")}
+              className={outlineButtonClass}
+            >
               <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
             </Button>
-            <Button variant="outline" onClick={() => exportToPdf("pl")} className={outlineButtonClass}>
+            <Button
+              variant="outline"
+              onClick={() => exportToPdf("pl")}
+              className={outlineButtonClass}
+            >
               <FileText className="mr-2 h-4 w-4" /> Export PDF
             </Button>
-            <Button variant="secondary" onClick={() => setPlData(emptyPLData)} className={outlineButtonClass}>
+            <Button
+              variant="secondary"
+              onClick={() => setPlData(emptyPLData)}
+              className={outlineButtonClass}
+            >
               Reset PL
             </Button>
           </div>
@@ -623,15 +852,35 @@ export default function FinancialReport() {
                   <thead>
                     <tr>
                       <th className="w-[60%] border border-zinc-200 bg-zinc-50/60 px-3 py-3 text-left font-semibold text-zinc-900 dark:border-white/10 dark:bg-white/[0.02] dark:text-white"></th>
-                      <th className="w-[25%] border border-zinc-200 bg-zinc-50/60 px-3 py-3 text-right font-semibold text-zinc-900 dark:border-white/10 dark:bg-white/[0.02] dark:text-white">Total</th>
-                      <th className="w-[15%] border border-zinc-200 bg-zinc-50/60 px-3 py-3 text-center font-semibold text-zinc-900 dark:border-white/10 dark:bg-white/[0.02] dark:text-white">Action</th>
+                      <th className="w-[25%] border border-zinc-200 bg-zinc-50/60 px-3 py-3 text-right font-semibold text-zinc-900 dark:border-white/10 dark:bg-white/[0.02] dark:text-white">
+                        Total
+                      </th>
+                      <th className="w-[15%] border border-zinc-200 bg-zinc-50/60 px-3 py-3 text-center font-semibold text-zinc-900 dark:border-white/10 dark:bg-white/[0.02] dark:text-white">
+                        Action
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     <SheetSection title="Income" />
-                    <SheetInputRow label="Income by sales" value={plData.incomeBySales} onChange={(v) => handlePLChange("incomeBySales", v)} />
-                    <SheetInputRow label="Vending machine rental advance" value={plData.vendingMachineRentalAdvance} onChange={(v) => handlePLChange("vendingMachineRentalAdvance", v)} />
-                    <SheetInputRow label="Vending machine rental charge" value={plData.vendingMachineRentalCharge} onChange={(v) => handlePLChange("vendingMachineRentalCharge", v)} />
+                    <SheetInputRow
+                      label="Income by sales"
+                      value={plData.incomeBySales}
+                      onChange={(v) => handlePLChange("incomeBySales", v)}
+                    />
+                    <SheetInputRow
+                      label="Vending machine rental advance"
+                      value={plData.vendingMachineRentalAdvance}
+                      onChange={(v) =>
+                        handlePLChange("vendingMachineRentalAdvance", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Vending machine rental charge"
+                      value={plData.vendingMachineRentalCharge}
+                      onChange={(v) =>
+                        handlePLChange("vendingMachineRentalCharge", v)
+                      }
+                    />
                     {plData.incomeExtraItems.map((item) => (
                       <SheetExtraInputRow
                         key={item.id}
@@ -641,12 +890,25 @@ export default function FinancialReport() {
                         onRemove={removePLExtraItem}
                       />
                     ))}
-                    <SheetButtonRow onClick={() => addPLExtraItem("incomeExtraItems")} />
-                    <SheetTotalRow label="Total for Income" value={formatCurrency(plSummary.totalIncome)} />
+                    <SheetButtonRow
+                      onClick={() => addPLExtraItem("incomeExtraItems")}
+                    />
+                    <SheetTotalRow
+                      label="Total for Income"
+                      value={formatCurrency(plSummary.totalIncome)}
+                    />
 
                     <SheetSection title="Cost of Sales" />
-                    <SheetInputRow label="Closing stock" value={plData.closingStock} onChange={(v) => handlePLChange("closingStock", v)} />
-                    <SheetInputRow label="Stock purchases" value={plData.stockPurchases} onChange={(v) => handlePLChange("stockPurchases", v)} />
+                    <SheetInputRow
+                      label="Closing stock"
+                      value={plData.closingStock}
+                      onChange={(v) => handlePLChange("closingStock", v)}
+                    />
+                    <SheetInputRow
+                      label="Stock purchases"
+                      value={plData.stockPurchases}
+                      onChange={(v) => handlePLChange("stockPurchases", v)}
+                    />
                     {plData.costOfSalesExtraItems.map((item) => (
                       <SheetExtraInputRow
                         key={item.id}
@@ -656,23 +918,92 @@ export default function FinancialReport() {
                         onRemove={removePLExtraItem}
                       />
                     ))}
-                    <SheetButtonRow onClick={() => addPLExtraItem("costOfSalesExtraItems")} />
-                    <SheetTotalRow label="Total for Cost of Sales" value={formatCurrency(plSummary.totalCostOfSales)} />
-                    <SheetTotalRow label="Gross Profit" value={formatCurrency(plSummary.grossProfit)} strong />
+                    <SheetButtonRow
+                      onClick={() => addPLExtraItem("costOfSalesExtraItems")}
+                    />
+                    <SheetTotalRow
+                      label="Total for Cost of Sales"
+                      value={formatCurrency(plSummary.totalCostOfSales)}
+                    />
+                    <SheetTotalRow
+                      label="Gross Profit"
+                      value={formatCurrency(plSummary.grossProfit)}
+                      strong
+                    />
 
                     <SheetSection title="Expenses" />
-                    <SheetInputRow label="Advertising" value={plData.advertising} onChange={(v) => handlePLChange("advertising", v)} />
-                    <SheetInputRow label="Bank charges" value={plData.bankCharges} onChange={(v) => handlePLChange("bankCharges", v)} />
-                    <SheetInputRow label="Cleaning" value={plData.cleaning} onChange={(v) => handlePLChange("cleaning", v)} />
-                    <SheetInputRow label="Computer running costs" value={plData.computerRunningCosts} onChange={(v) => handlePLChange("computerRunningCosts", v)} />
-                    <SheetInputRow label="Damages and compensation" value={plData.damagesAndCompensation} onChange={(v) => handlePLChange("damagesAndCompensation", v)} />
-                    <SheetInputRow label="Insurance" value={plData.insurance} onChange={(v) => handlePLChange("insurance", v)} />
-                    <SheetInputRow label="Legal and professional fees" value={plData.legalAndProfessionalFees} onChange={(v) => handlePLChange("legalAndProfessionalFees", v)} />
-                    <SheetInputRow label="Post Office Commission" value={plData.postOfficeCommission} onChange={(v) => handlePLChange("postOfficeCommission", v)} />
-                    <SheetInputRow label="Printing, postage and stationery" value={plData.printingPostageAndStationery} onChange={(v) => handlePLChange("printingPostageAndStationery", v)} />
-                    <SheetInputRow label="Telephone" value={plData.telephone} onChange={(v) => handlePLChange("telephone", v)} />
-                    <SheetInputRow label="Unapplied Cash Bill Payment Expense" value={plData.unappliedCashBillPaymentExpense} onChange={(v) => handlePLChange("unappliedCashBillPaymentExpense", v)} />
-                    <SheetInputRow label="Electricity" value={plData.electricity} onChange={(v) => handlePLChange("electricity", v)} />
+                    <SheetInputRow
+                      label="Advertising"
+                      value={plData.advertising}
+                      onChange={(v) => handlePLChange("advertising", v)}
+                    />
+                    <SheetInputRow
+                      label="Bank charges"
+                      value={plData.bankCharges}
+                      onChange={(v) => handlePLChange("bankCharges", v)}
+                    />
+                    <SheetInputRow
+                      label="Cleaning"
+                      value={plData.cleaning}
+                      onChange={(v) => handlePLChange("cleaning", v)}
+                    />
+                    <SheetInputRow
+                      label="Computer running costs"
+                      value={plData.computerRunningCosts}
+                      onChange={(v) =>
+                        handlePLChange("computerRunningCosts", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Damages and compensation"
+                      value={plData.damagesAndCompensation}
+                      onChange={(v) =>
+                        handlePLChange("damagesAndCompensation", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Insurance"
+                      value={plData.insurance}
+                      onChange={(v) => handlePLChange("insurance", v)}
+                    />
+                    <SheetInputRow
+                      label="Legal and professional fees"
+                      value={plData.legalAndProfessionalFees}
+                      onChange={(v) =>
+                        handlePLChange("legalAndProfessionalFees", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Post Office Commission"
+                      value={plData.postOfficeCommission}
+                      onChange={(v) =>
+                        handlePLChange("postOfficeCommission", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Printing, postage and stationery"
+                      value={plData.printingPostageAndStationery}
+                      onChange={(v) =>
+                        handlePLChange("printingPostageAndStationery", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Telephone"
+                      value={plData.telephone}
+                      onChange={(v) => handlePLChange("telephone", v)}
+                    />
+                    <SheetInputRow
+                      label="Unapplied Cash Bill Payment Expense"
+                      value={plData.unappliedCashBillPaymentExpense}
+                      onChange={(v) =>
+                        handlePLChange("unappliedCashBillPaymentExpense", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Electricity"
+                      value={plData.electricity}
+                      onChange={(v) => handlePLChange("electricity", v)}
+                    />
                     {plData.expensesExtraItems.map((item) => (
                       <SheetExtraInputRow
                         key={item.id}
@@ -682,22 +1013,67 @@ export default function FinancialReport() {
                         onRemove={removePLExtraItem}
                       />
                     ))}
-                    <SheetButtonRow onClick={() => addPLExtraItem("expensesExtraItems")} />
-                    <SheetTotalRow label="Total for Expenses" value={formatCurrency(plSummary.totalExpenses)} />
-                    <SheetTotalRow label="Net Operating Income" value={formatCurrency(plSummary.netOperatingIncome)} strong />
+                    <SheetButtonRow
+                      onClick={() => addPLExtraItem("expensesExtraItems")}
+                    />
+                    <SheetTotalRow
+                      label="Total for Expenses"
+                      value={formatCurrency(plSummary.totalExpenses)}
+                    />
+                    <SheetTotalRow
+                      label="Net Operating Income"
+                      value={formatCurrency(plSummary.netOperatingIncome)}
+                      strong
+                    />
 
                     <SheetSection title="Other Income" />
-                    <SheetInputRow label="Bank interest - received" value={plData.bankInterestReceived} onChange={(v) => handlePLChange("bankInterestReceived", v)} />
-                    <SheetInputRow label="Daily Facility Fee" value={plData.dailyFacilityFee} onChange={(v) => handlePLChange("dailyFacilityFee", v)} />
-                    <SheetInputRow label="Other finance income" value={plData.otherFinanceIncome} onChange={(v) => handlePLChange("otherFinanceIncome", v)} />
-                    <SheetInputRow label="Other rent income" value={plData.otherRentIncome} onChange={(v) => handlePLChange("otherRentIncome", v)} />
-                    <SheetTotalRow label="Total for Other Income" value={formatCurrency(plSummary.totalOtherIncome)} />
+                    <SheetInputRow
+                      label="Bank interest - received"
+                      value={plData.bankInterestReceived}
+                      onChange={(v) =>
+                        handlePLChange("bankInterestReceived", v)
+                      }
+                    />
+                    <SheetInputRow
+                      label="Daily Facility Fee"
+                      value={plData.dailyFacilityFee}
+                      onChange={(v) => handlePLChange("dailyFacilityFee", v)}
+                    />
+                    <SheetInputRow
+                      label="Other finance income"
+                      value={plData.otherFinanceIncome}
+                      onChange={(v) => handlePLChange("otherFinanceIncome", v)}
+                    />
+                    <SheetInputRow
+                      label="Other rent income"
+                      value={plData.otherRentIncome}
+                      onChange={(v) => handlePLChange("otherRentIncome", v)}
+                    />
+                    <SheetTotalRow
+                      label="Total for Other Income"
+                      value={formatCurrency(plSummary.totalOtherIncome)}
+                    />
 
                     <SheetSection title="Other Expenses" />
-                    <SheetInputRow label="Dividend" value={plData.dividend} onChange={(v) => handlePLChange("dividend", v)} />
-                    <SheetTotalRow label="Total for Other Expenses" value={formatCurrency(plSummary.totalOtherExpenses)} />
-                    <SheetTotalRow label="Net Other Income" value={formatCurrency(plSummary.netOtherIncome)} strong />
-                    <SheetTotalRow label="Net Income" value={formatCurrency(plSummary.netIncome)} strong />
+                    <SheetInputRow
+                      label="Dividend"
+                      value={plData.dividend}
+                      onChange={(v) => handlePLChange("dividend", v)}
+                    />
+                    <SheetTotalRow
+                      label="Total for Other Expenses"
+                      value={formatCurrency(plSummary.totalOtherExpenses)}
+                    />
+                    <SheetTotalRow
+                      label="Net Other Income"
+                      value={formatCurrency(plSummary.netOtherIncome)}
+                      strong
+                    />
+                    <SheetTotalRow
+                      label="Net Income"
+                      value={formatCurrency(plSummary.netIncome)}
+                      strong
+                    />
                   </tbody>
                 </table>
               </div>
@@ -715,34 +1091,86 @@ export default function FinancialReport() {
               </CardHeader>
               <CardContent className="space-y-6">
                 <div>
-                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">Assets</h3>
+                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">
+                    Assets
+                  </h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <NumberField label="Cash" value={balanceData.cash} onChange={(v) => handleBalanceChange("cash", v)} />
-                    <NumberField label="Bank" value={balanceData.bank} onChange={(v) => handleBalanceChange("bank", v)} />
-                    <NumberField label="Accounts Receivable" value={balanceData.accountsReceivable} onChange={(v) => handleBalanceChange("accountsReceivable", v)} />
-                    <NumberField label="Inventory" value={balanceData.inventory} onChange={(v) => handleBalanceChange("inventory", v)} />
-                    <NumberField label="Fixed Assets" value={balanceData.fixedAssets} onChange={(v) => handleBalanceChange("fixedAssets", v)} />
+                    <NumberField
+                      label="Cash"
+                      value={balanceData.cash}
+                      onChange={(v) => handleBalanceChange("cash", v)}
+                    />
+                    <NumberField
+                      label="Bank"
+                      value={balanceData.bank}
+                      onChange={(v) => handleBalanceChange("bank", v)}
+                    />
+                    <NumberField
+                      label="Accounts Receivable"
+                      value={balanceData.accountsReceivable}
+                      onChange={(v) =>
+                        handleBalanceChange("accountsReceivable", v)
+                      }
+                    />
+                    <NumberField
+                      label="Inventory"
+                      value={balanceData.inventory}
+                      onChange={(v) => handleBalanceChange("inventory", v)}
+                    />
+                    <NumberField
+                      label="Fixed Assets"
+                      value={balanceData.fixedAssets}
+                      onChange={(v) => handleBalanceChange("fixedAssets", v)}
+                    />
                   </div>
                 </div>
 
                 <Separator className="bg-zinc-200 dark:bg-white/10" />
 
                 <div>
-                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">Liabilities</h3>
+                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">
+                    Liabilities
+                  </h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <NumberField label="Accounts Payable" value={balanceData.accountsPayable} onChange={(v) => handleBalanceChange("accountsPayable", v)} />
-                    <NumberField label="Loans" value={balanceData.loans} onChange={(v) => handleBalanceChange("loans", v)} />
-                    <NumberField label="Taxes Payable" value={balanceData.taxesPayable} onChange={(v) => handleBalanceChange("taxesPayable", v)} />
+                    <NumberField
+                      label="Accounts Payable"
+                      value={balanceData.accountsPayable}
+                      onChange={(v) =>
+                        handleBalanceChange("accountsPayable", v)
+                      }
+                    />
+                    <NumberField
+                      label="Loans"
+                      value={balanceData.loans}
+                      onChange={(v) => handleBalanceChange("loans", v)}
+                    />
+                    <NumberField
+                      label="Taxes Payable"
+                      value={balanceData.taxesPayable}
+                      onChange={(v) => handleBalanceChange("taxesPayable", v)}
+                    />
                   </div>
                 </div>
 
                 <Separator className="bg-zinc-200 dark:bg-white/10" />
 
                 <div>
-                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">Equity</h3>
+                  <h3 className="mb-3 font-semibold text-zinc-900 dark:text-white">
+                    Equity
+                  </h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    <NumberField label="Owner Capital" value={balanceData.ownerCapital} onChange={(v) => handleBalanceChange("ownerCapital", v)} />
-                    <NumberField label="Retained Earnings" value={balanceData.retainedEarnings} onChange={(v) => handleBalanceChange("retainedEarnings", v)} />
+                    <NumberField
+                      label="Owner Capital"
+                      value={balanceData.ownerCapital}
+                      onChange={(v) => handleBalanceChange("ownerCapital", v)}
+                    />
+                    <NumberField
+                      label="Retained Earnings"
+                      value={balanceData.retainedEarnings}
+                      onChange={(v) =>
+                        handleBalanceChange("retainedEarnings", v)
+                      }
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -755,26 +1183,55 @@ export default function FinancialReport() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <SummaryRow label="Total Assets" value={formatCurrency(balanceSummary.totalAssets)} strong />
-                <SummaryRow label="Total Liabilities" value={formatCurrency(balanceSummary.totalLiabilities)} />
-                <SummaryRow label="Total Equity" value={formatCurrency(balanceSummary.totalEquity)} />
-                <SummaryRow label="Liabilities + Equity" value={formatCurrency(balanceSummary.liabilitiesAndEquity)} strong />
-                <SummaryRow label="Difference" value={formatCurrency(balanceSummary.difference)} />
+                <SummaryRow
+                  label="Total Assets"
+                  value={formatCurrency(balanceSummary.totalAssets)}
+                  strong
+                />
+                <SummaryRow
+                  label="Total Liabilities"
+                  value={formatCurrency(balanceSummary.totalLiabilities)}
+                />
+                <SummaryRow
+                  label="Total Equity"
+                  value={formatCurrency(balanceSummary.totalEquity)}
+                />
+                <SummaryRow
+                  label="Liabilities + Equity"
+                  value={formatCurrency(balanceSummary.liabilitiesAndEquity)}
+                  strong
+                />
+                <SummaryRow
+                  label="Difference"
+                  value={formatCurrency(balanceSummary.difference)}
+                />
 
                 {balanceSummary.difference !== 0 && (
                   <p className="rounded-lg bg-yellow-50/50 p-3 text-sm text-yellow-800 dark:bg-yellow-950/30 dark:text-yellow-300">
-                    Balance sheet is not balanced. Assets must equal Liabilities + Equity.
+                    Balance sheet is not balanced. Assets must equal Liabilities
+                    + Equity.
                   </p>
                 )}
 
                 <div className="grid gap-2 pt-4">
-                  <Button onClick={() => exportToExcel("balance")} className={outlineButtonClass}>
+                  <Button
+                    onClick={() => exportToExcel("balance")}
+                    className={outlineButtonClass}
+                  >
                     <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
                   </Button>
-                  <Button variant="outline" onClick={() => exportToPdf("balance")} className={outlineButtonClass}>
+                  <Button
+                    variant="outline"
+                    onClick={() => exportToPdf("balance")}
+                    className={outlineButtonClass}
+                  >
                     <FileText className="mr-2 h-4 w-4" /> Export PDF
                   </Button>
-                  <Button variant="secondary" onClick={() => setBalanceData(emptyBalanceSheetData)} className={outlineButtonClass}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setBalanceData(emptyBalanceSheetData)}
+                    className={outlineButtonClass}
+                  >
                     Reset Balance Sheet
                   </Button>
                 </div>
@@ -790,7 +1247,9 @@ export default function FinancialReport() {
 function SheetSection({ title }: { title: string }) {
   return (
     <tr>
-      <td className="border border-zinc-200 px-3 py-2 font-semibold text-zinc-900 dark:border-white/10 dark:text-white">{title}</td>
+      <td className="border border-zinc-200 px-3 py-2 font-semibold text-zinc-900 dark:border-white/10 dark:text-white">
+        {title}
+      </td>
       <td className="border border-zinc-200 px-3 py-2 dark:border-white/10"></td>
       <td className="border border-zinc-200 px-3 py-2 dark:border-white/10"></td>
     </tr>
@@ -808,7 +1267,9 @@ function SheetInputRow({
 }) {
   return (
     <tr>
-      <td className="border border-zinc-200 px-6 py-1.5 text-zinc-900 dark:border-white/10 dark:text-white">{label}</td>
+      <td className="border border-zinc-200 px-6 py-1.5 text-zinc-900 dark:border-white/10 dark:text-white">
+        {label}
+      </td>
       <td className="border border-zinc-200 p-0 dark:border-white/10">
         <Input
           type="number"
@@ -832,14 +1293,20 @@ function SheetExtraInputRow({
   item: LineItem;
   section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems";
   onUpdate: (
-    section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems",
+    section:
+      | "incomeExtraItems"
+      | "costOfSalesExtraItems"
+      | "expensesExtraItems",
     id: string,
     field: "label" | "amount",
-    value: string
+    value: string,
   ) => void;
   onRemove: (
-    section: "incomeExtraItems" | "costOfSalesExtraItems" | "expensesExtraItems",
-    id: string
+    section:
+      | "incomeExtraItems"
+      | "costOfSalesExtraItems"
+      | "expensesExtraItems",
+    id: string,
   ) => void;
 }) {
   return (
@@ -862,7 +1329,12 @@ function SheetExtraInputRow({
         />
       </td>
       <td className="border border-zinc-200 px-2 py-1 text-center dark:border-white/10">
-        <Button type="button" size="icon" variant="ghost" onClick={() => onRemove(section, item.id)}>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => onRemove(section, item.id)}
+        >
           <Trash2 className="h-4 w-4 text-zinc-900 hover:text-red-500 dark:text-white dark:hover:text-red-400" />
         </Button>
       </td>
@@ -874,7 +1346,13 @@ function SheetButtonRow({ onClick }: { onClick: () => void }) {
   return (
     <tr>
       <td className="border border-zinc-200 px-6 py-2 dark:border-white/10">
-        <Button type="button" size="sm" variant="outline" onClick={onClick} className="border-zinc-300 bg-transparent text-zinc-900 hover:bg-zinc-100/60 dark:border-white/20 dark:text-white dark:hover:bg-white/10">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={onClick}
+          className="border-zinc-300 bg-transparent text-zinc-900 hover:bg-zinc-100/60 dark:border-white/20 dark:text-white dark:hover:bg-white/10"
+        >
           Add another item
         </Button>
       </td>
@@ -894,9 +1372,19 @@ function SheetTotalRow({
   strong?: boolean;
 }) {
   return (
-    <tr className={strong ? "bg-zinc-100/80 dark:bg-white/[0.03]" : "bg-zinc-50/40 dark:bg-white/[0.01]"}>
-      <td className="border-t border-b border-zinc-200 px-3 py-2 font-semibold text-zinc-900 dark:border-white/10 dark:text-white">{label}</td>
-      <td className="border-t border-b border-zinc-200 px-3 py-2 text-right font-bold text-zinc-900 dark:border-white/10 dark:text-white">{value}</td>
+    <tr
+      className={
+        strong
+          ? "bg-zinc-100/80 dark:bg-white/[0.03]"
+          : "bg-zinc-50/40 dark:bg-white/[0.01]"
+      }
+    >
+      <td className="border-t border-b border-zinc-200 px-3 py-2 font-semibold text-zinc-900 dark:border-white/10 dark:text-white">
+        {label}
+      </td>
+      <td className="border-t border-b border-zinc-200 px-3 py-2 text-right font-bold text-zinc-900 dark:border-white/10 dark:text-white">
+        {value}
+      </td>
       <td className="border-t border-b border-zinc-200 px-3 py-2 dark:border-white/10"></td>
     </tr>
   );
@@ -914,7 +1402,13 @@ function SummaryRow({
   return (
     <div className="flex items-center justify-between rounded-xl border border-zinc-200 p-3 dark:border-white/10">
       <span className="text-sm text-zinc-600 dark:text-zinc-400">{label}</span>
-      <span className={strong ? "font-bold text-zinc-900 dark:text-white" : "font-medium text-zinc-900 dark:text-white"}>
+      <span
+        className={
+          strong
+            ? "font-bold text-zinc-900 dark:text-white"
+            : "font-medium text-zinc-900 dark:text-white"
+        }
+      >
         {value}
       </span>
     </div>
